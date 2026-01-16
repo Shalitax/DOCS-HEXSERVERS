@@ -1,0 +1,36 @@
+{
+  "name": "hexservers-docs",
+  "version": "1.0.0",
+  "description": "Documentation website with black glass theme",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch"
+  },
+  "keywords": [
+    "docs",
+    "documentation",
+    "markdown",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.2",
+    "connect-sqlite3": "^0.9.16",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-session": "^1.18.2",
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.0.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "nodemon": "^3.0.2",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0"
+  }
+}

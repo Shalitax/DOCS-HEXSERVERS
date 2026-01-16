@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= mode === 'create' ? 'Nueva' : 'Editar' %> Documentación - HexServers Admin</title>
+  <link href="/css/output.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    #content {
+      font-family: 'Courier New', monospace;
+      min-height: 400px;
+    }
+    
+    /* Estilos para los selectores */
+    select option {
+      background-color: #1f2937;
+      color: #ffffff;
+      padding: 8px;
+    }
+    
+    select {
+      background-color: rgba(0, 0, 0, 0.6);
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen">
+  
+  <header class="glass border-b border-white/20 shadow-lg">
+    <div class="container mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold font-display text-white">
+          <%= mode === 'create' ? 'Nueva' : 'Editar' %> Documentación
+        </h1>
+        <a href="/admin" class="glass px-4 py-2 rounded-lg hover:bg-white/20 transition-all font-medium">
+          <i class="fas fa-arrow-left mr-2"></i>Volver
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container mx-auto px-6 py-8">
+    <div class="max-w-4xl mx-auto">
+      <form method="POST" action="<%= mode === 'create' ? '/admin/docs/new' : '/admin/docs/edit/' + doc.id %>" class="glass rounded-xl p-8 border border-white/20 shadow-xl">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label for="title" class="block text-sm font-medium text-gray-300 mb-2">
+              <i class="fas fa-heading mr-2"></i>Título
+            </label>
+            <input 
+              type="text" 
+              id="title" 
+              name="title" 
+              required
+              value="<%= doc ? doc.title : '' %>"
+              class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white font-medium"
+              placeholder="Título de la documentación"
+            >
+          </div>
+
+          <div>
+            <label for="slug" class="block text-sm font-medium text-gray-300 mb-2">
+              <i class="fas fa-link mr-2"></i>Slug (URL)
+            </label>
+            <input 
+              type="text" 
+              id="slug" 
+              name="slug" 
+              required
+              value="<%= doc ? doc.slug : '' %>"
+              class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white font-medium"
+              placeholder="slug-de-la-url"
+            >
+          </div>
+        </div>
+
+        <% if (mode === 'create') { %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label for="category" class="block text-sm font-medium text-gray-300 mb-2">
+              <i class="fas fa-folder mr-2"></i>Categoría
+            </label>
+            <select 
+              id="category" 
+              class="w-full glass px-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Selecciona una categoría</option>
+              <% categories.forEach(cat => { %>
+                <option value="<%= cat.id %>"><%= cat.display_name %></option>
+              <% }); %>
+            </select>
+          </div>
+
+          <div>
+            <label for="subcategory_id" class="block text-sm font-medium text-gray-300 mb-2">
+              <i class="fas fa-folder-open mr-2"></i>Subcategoría
+            </label>
+            <select 
+              id="subcategory_id" 
+              name="subcategory_id"
+              required
+              class="w-full glass px-4 py-3 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="">Primero selecciona categoría</option>
+            </select>
+          </div>
+        </div>
+        <% } %>
+
+        <div class="mb-6">
+          <label for="description" class="block text-sm font-medium text-gray-300 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>Descripción
+          </label>
+          <input 
+            type="text" 
+            id="description" 
+            name="description"
+            value="<%= doc ? doc.description || '' : '' %>"
+            class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="Breve descripción"
+          >
+        </div>
+
+        <div class="mb-6">
+          <label for="content" class="block text-sm font-medium text-gray-300 mb-2">
+            <i class="fas fa-file-code mr-2"></i>Contenido (Markdown)
+          </label>
+          <textarea 
+            id="content" 
+            name="content" 
+            required
+            rows="20"
+            class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+            placeholder="# Tu contenido en Markdown aquí..."
+          ><%= doc ? doc.content : '' %></textarea>
+          <p class="text-xs text-gray-400 mt-2">
+            <i class="fas fa-markdown mr-1"></i>Soporta Markdown completo
+          </p>
+        </div>
+
+        <div class="mb-6">
+          <label for="order_index" class="block text-sm font-medium text-gray-300 mb-2">
+            <i class="fas fa-sort-numeric-up mr-2"></i>Orden
+          </label>
+          <input 
+            type="number" 
+            id="order_index" 
+            name="order_index"
+            value="<%= doc ? doc.order_index : 0 %>"
+            class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="0"
+          >
+        </div>
+
+        <div class="flex space-x-4">
+          <button 
+            type="submit"
+            class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 rounded-lg transition-all"
+          >
+            <i class="fas fa-save mr-2"></i><%= mode === 'create' ? 'Crear' : 'Actualizar' %>
+          </button>
+          <a href="/admin/docs" class="glass px-6 py-3 rounded-lg hover:bg-white/10 transition-all inline-block text-center">
+            Cancelar
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Auto-generar slug desde el título
+    document.getElementById('title').addEventListener('input', (e) => {
+      const slug = e.target.value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      document.getElementById('slug').value = slug;
+    });
+
+    <% if (mode === 'create') { %>
+    // Cargar subcategorías cuando se selecciona una categoría
+    document.getElementById('category').addEventListener('change', async (e) => {
+      const categoryId = e.target.value;
+      const subcategorySelect = document.getElementById('subcategory_id');
+      
+      if (!categoryId) {
+        subcategorySelect.innerHTML = '<option value="">Primero selecciona categoría</option>';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/subcategories/${categoryId}`);
+        const subcategories = await response.json();
+        
+        subcategorySelect.innerHTML = '<option value="">Selecciona una subcategoría</option>';
+        subcategories.forEach(sub => {
+          const option = document.createElement('option');
+          option.value = sub.id;
+          option.textContent = sub.display_name;
+          <% if (preselectedSubcategory) { %>
+          if (sub.id == <%= preselectedSubcategory %>) {
+            option.selected = true;
+          }
+          <% } %>
+          subcategorySelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading subcategories:', error);
+      }
+    });
+    
+    // Auto-cargar subcategorías si hay una preseleccionada
+    <% if (preselectedSubcategory) { %>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const preselectedId = <%= preselectedSubcategory %>;
+      
+      // Buscar la categoría de la subcategoría preseleccionada
+      try {
+        const response = await fetch(`/api/admin/subcategories/all`);
+        const allSubcategories = await response.json();
+        const preselectedSub = allSubcategories.find(s => s.id == preselectedId);
+        
+        if (preselectedSub) {
+          const categorySelect = document.getElementById('category');
+          categorySelect.value = preselectedSub.category_id;
+          categorySelect.dispatchEvent(new Event('change'));
+        }
+      } catch (error) {
+        console.error('Error loading preselected:', error);
+      }
+    });
+    <% } %>
+    <% } %>
+  </script>
+
+</body>
+</html>

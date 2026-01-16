@@ -1,0 +1,451 @@
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+const path = require('path');
+
+const dbPath = path.join(__dirname, 'hexservers.db');
+const db = new sqlite3.Database(dbPath);
+
+// Inicializar base de datos
+function initDatabase() {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      // Tabla de usuarios
+      db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Tabla de categorías
+      db.run(`
+        CREATE TABLE IF NOT EXISTS categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE NOT NULL,
+          display_name TEXT NOT NULL,
+          slug TEXT UNIQUE NOT NULL,
+          icon TEXT DEFAULT 'fa-folder',
+          order_index INTEGER DEFAULT 0,
+          is_hidden INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Agregar columna is_hidden si no existe
+      db.run(`ALTER TABLE categories ADD COLUMN is_hidden INTEGER DEFAULT 0`, () => {});
+
+      // Tabla de subcategorías
+      db.run(`
+        CREATE TABLE IF NOT EXISTS subcategories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          display_name TEXT NOT NULL,
+          slug TEXT NOT NULL,
+          icon TEXT DEFAULT 'fa-folder-open',
+          order_index INTEGER DEFAULT 0,
+          is_hidden INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+          UNIQUE(category_id, slug)
+        )
+      `);
+      
+      // Agregar columna is_hidden si no existe
+      db.run(`ALTER TABLE subcategories ADD COLUMN is_hidden INTEGER DEFAULT 0`, () => {});
+
+      // Tabla de documentación
+      db.run(`
+        CREATE TABLE IF NOT EXISTS documentation (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subcategory_id INTEGER NOT NULL,
+          title TEXT NOT NULL,
+          slug TEXT NOT NULL,
+          description TEXT,
+          content TEXT NOT NULL,
+          order_index INTEGER DEFAULT 0,
+          is_published BOOLEAN DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE CASCADE,
+          UNIQUE(subcategory_id, slug)
+        )
+      `, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+}
+
+// Crear usuario admin por defecto
+async function createDefaultAdmin() {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM users WHERE username = ?', ['admin'], async (err, user) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      if (!user) {
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        db.run(
+          'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
+          ['admin', hashedPassword, 'admin@hexservers.com'],
+          (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              console.log('✅ Usuario admin creado (username: admin, password: admin123)');
+              resolve();
+            }
+          }
+        );
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+// Funciones para usuarios
+const userDb = {
+  findByUsername: (username) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  },
+
+  findById: (id) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM users WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  },
+
+  getAll: () => {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT id, username, email, created_at FROM users ORDER BY created_at DESC', (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  },
+
+  create: async (username, password, email) => {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
+        [username, hashedPassword, email],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  },
+
+  update: async (id, username, email, password = null) => {
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      return new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?',
+          [username, email, hashedPassword, id],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+    } else {
+      return new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE users SET username = ?, email = ? WHERE id = ?',
+          [username, email, id],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+    }
+  },
+
+  delete: (id) => {
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM users WHERE id = ?', [id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+};
+
+// Funciones para categorías
+const categoryDb = {
+  getAll: () => {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM categories ORDER BY order_index ASC, name ASC', (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  },
+
+  getById: (id) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM categories WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  },
+
+  create: (name, displayName, slug, icon = 'fa-folder', orderIndex = 0, isHidden = 0, iconType = 'fontawesome') => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO categories (name, display_name, slug, icon, order_index, is_hidden, icon_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [name, displayName, slug, icon, orderIndex, isHidden, iconType],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  },
+
+  update: (id, name, displayName, slug, icon, orderIndex, isHidden = 0, iconType = 'fontawesome') => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE categories SET name = ?, display_name = ?, slug = ?, icon = ?, order_index = ?, is_hidden = ?, icon_type = ? WHERE id = ?',
+        [name, displayName, slug, icon, orderIndex, isHidden, iconType, id],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  },
+
+  delete: (id) => {
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM categories WHERE id = ?', [id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+};
+
+// Funciones para subcategorías
+const subcategoryDb = {
+  getAll: () => {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM subcategories ORDER BY order_index ASC, name ASC', (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  },
+
+  getByCategoryId: (categoryId) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM subcategories WHERE category_id = ? ORDER BY order_index ASC, name ASC',
+        [categoryId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  },
+
+  create: (categoryId, name, displayName, slug, icon = 'fa-folder-open', orderIndex = 0, isHidden = 0, iconType = 'fontawesome') => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO subcategories (category_id, name, display_name, slug, icon, order_index, is_hidden, icon_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [categoryId, name, displayName, slug, icon, orderIndex, isHidden, iconType],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  },
+
+  update: (id, name, displayName, slug, icon, orderIndex, isHidden = 0, iconType = 'fontawesome') => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE subcategories SET name = ?, display_name = ?, slug = ?, icon = ?, order_index = ?, is_hidden = ?, icon_type = ? WHERE id = ?',
+        [name, displayName, slug, icon, orderIndex, isHidden, iconType, id],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  },
+
+  delete: (id) => {
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM subcategories WHERE id = ?', [id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+};
+
+// Funciones para documentación
+const docDb = {
+  getAll: () => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT d.*, s.name as subcategory_name, s.category_id, c.name as category_name
+         FROM documentation d
+         JOIN subcategories s ON d.subcategory_id = s.id
+         JOIN categories c ON s.category_id = c.id
+         WHERE d.is_published = 1
+         ORDER BY d.order_index ASC, d.title ASC`,
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  },
+
+  getBySlug: (categorySlug, subcategorySlug, docSlug) => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        `SELECT d.*, s.slug as subcategory_slug, c.slug as category_slug
+         FROM documentation d
+         JOIN subcategories s ON d.subcategory_id = s.id
+         JOIN categories c ON s.category_id = c.id
+         WHERE c.slug = ? AND s.slug = ? AND d.slug = ? AND d.is_published = 1`,
+        [categorySlug, subcategorySlug, docSlug],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+  },
+
+  getById: (id) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM documentation WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  },
+
+  getBySubcategoryId: (subcategoryId) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM documentation WHERE subcategory_id = ? ORDER BY order_index ASC, title ASC',
+        [subcategoryId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  },
+
+  create: (subcategoryId, title, slug, description, content, orderIndex = 0) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO documentation (subcategory_id, title, slug, description, content, order_index) VALUES (?, ?, ?, ?, ?, ?)',
+        [subcategoryId, title, slug, description, content, orderIndex],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  },
+
+  update: (id, title, slug, description, content, orderIndex) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE documentation SET title = ?, slug = ?, description = ?, content = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [title, slug, description, content, orderIndex, id],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  },
+
+  delete: (id) => {
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM documentation WHERE id = ?', [id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  },
+
+  togglePublish: (id, isPublished) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE documentation SET is_published = ? WHERE id = ?',
+        [isPublished ? 1 : 0, id],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  },
+
+  search: (query) => {
+    return new Promise((resolve, reject) => {
+      // Si la búsqueda es muy específica, traer más resultados para filtrar después
+      const searchPattern = query.length <= 3 ? '%' : `%${query}%`;
+      
+      db.all(
+        `SELECT d.*, s.slug as subcategory_slug, s.display_name as subcategory_name,
+                c.slug as category_slug, c.display_name as category_name
+         FROM documentation d
+         JOIN subcategories s ON d.subcategory_id = s.id
+         JOIN categories c ON s.category_id = c.id
+         WHERE d.is_published = 1
+         ORDER BY d.title ASC
+         LIMIT 100`,
+        [],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  }
+};
+
+module.exports = {
+  db,
+  initDatabase,
+  createDefaultAdmin,
+  userDb,
+  categoryDb,
+  subcategoryDb,
+  docDb
+};
