@@ -28,14 +28,16 @@ function initDatabase() {
           display_name TEXT NOT NULL,
           slug TEXT UNIQUE NOT NULL,
           icon TEXT DEFAULT 'fa-folder',
+          icon_type TEXT DEFAULT 'fontawesome',
           order_index INTEGER DEFAULT 0,
           is_hidden INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
       
-      // Agregar columna is_hidden si no existe
+      // Agregar columnas si no existen (para bases de datos existentes)
       db.run(`ALTER TABLE categories ADD COLUMN is_hidden INTEGER DEFAULT 0`, () => {});
+      db.run(`ALTER TABLE categories ADD COLUMN icon_type TEXT DEFAULT 'fontawesome'`, () => {});
 
       // Tabla de subcategorías
       db.run(`
@@ -46,6 +48,7 @@ function initDatabase() {
           display_name TEXT NOT NULL,
           slug TEXT NOT NULL,
           icon TEXT DEFAULT 'fa-folder-open',
+          icon_type TEXT DEFAULT 'fontawesome',
           order_index INTEGER DEFAULT 0,
           is_hidden INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -54,8 +57,9 @@ function initDatabase() {
         )
       `);
       
-      // Agregar columna is_hidden si no existe
+      // Agregar columnas si no existen (para bases de datos existentes)
       db.run(`ALTER TABLE subcategories ADD COLUMN is_hidden INTEGER DEFAULT 0`, () => {});
+      db.run(`ALTER TABLE subcategories ADD COLUMN icon_type TEXT DEFAULT 'fontawesome'`, () => {});
 
       // Tabla de documentación
       db.run(`
