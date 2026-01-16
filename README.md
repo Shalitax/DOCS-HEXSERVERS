@@ -31,24 +31,17 @@ Sitio de documentación moderno con tema glass negro, construido con Node.js, Ex
 npm install
 ```
 
-2. **Migrar datos existentes (opcional)**
-
-Si tienes guías en archivos `.md` en la carpeta `docs/`:
-```bash
-node migrate.js
-```
-
-Esto creará la base de datos y migrará todos los archivos MD existentes.
-
-3. **Compilar CSS de Tailwind**
+2. **Compilar CSS de Tailwind**
 ```bash
 npm run build:css
 ```
 
-4. **Iniciar el servidor**
+3. **Iniciar el servidor**
 ```bash
 npm start
 ```
+
+El servidor iniciará automáticamente la base de datos y creará un usuario admin por defecto.
 
 O para desarrollo con auto-reload:
 ```bash

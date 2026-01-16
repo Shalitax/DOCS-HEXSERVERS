@@ -13,12 +13,13 @@
 - [x] Create authentication system with login
 - [x] Build admin panel with CRUD operations
 - [x] Add real-time editing functionality
-- [x] Migrate existing MD files to database
+- [x] Add PNG icon support for categories/subcategories
+- [x] Code cleanup and optimization
 
 ## Project Details
 Documentation website with Node.js, Express, Tailwind CSS, black glass theme, markdown support, and animations.
 
-**NEW: Complete CMS with admin panel, SQLite database, and real-time editing!**
+**Complete CMS with admin panel, SQLite database, PNG icons, and real-time editing!**
 
 ## Running the Application
 Server is running at: http://localhost:3000
@@ -33,11 +34,6 @@ To start the server:
 node server.js
 ```
 
-To migrate MD files to database:
-```bash
-node migrate.js
-```
-
 To rebuild CSS:
 ```bash
 npx tailwindcss -i ./public/css/input.css -o ./public/css/output.css
@@ -48,6 +44,15 @@ npx tailwindcss -i ./public/css/input.css -o ./public/css/output.css
 ✅ User authentication with sessions
 ✅ Admin dashboard with statistics
 ✅ CRUD operations for documentation
+✅ Category and subcategory management
+✅ Real-time editing from main site (when logged in)
+✅ Markdown editor with auto-slug generation
+✅ Search functionality with accent-insensitive support
+✅ Responsive design
+✅ Glass theme with animations
+✅ PNG icon support for categories and subcategories
+✅ Hidden categories/subcategories functionality
+✅ Optimized codebase (removed unused CSS/files)
 ✅ Category and subcategory management
 ✅ Real-time editing from main site (when logged in)
 ✅ Markdown editor with auto-slug generation

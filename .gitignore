@@ -3,3 +3,7 @@ public/css/output.css
 .env
 *.log
 .DS_Store
+
+# Base de datos SQLite (se crea automáticamente)
+*.db
+sessions.db
