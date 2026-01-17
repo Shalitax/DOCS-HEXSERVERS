@@ -81,12 +81,17 @@
   @apply mb-4;
 }
 
-.markdown-content ul, .markdown-content ol {
-  @apply mb-4 ml-6;
+.markdown-content ul {
+  @apply mb-4 ml-6 list-disc;
+}
+
+.markdown-content ol {
+  @apply mb-4 ml-6 list-decimal;
 }
 
 .markdown-content li {
   @apply mb-2;
+  display: list-item;
 }
 
 .markdown-content code {
