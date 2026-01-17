@@ -538,11 +538,12 @@ function editCategoryModal(id, name, displayName, slug, icon, order, isHidden, i
   showCategoryModal(id, name, displayName, slug, icon, order, isHidden, iconType);
 }
 
-function showSubcategoryModal(categoryId, categoryName, id = null, name = '', displayName = '', slug = '', icon = 'fa-folder-open', order = 0, isHidden = false, iconType = 'fontawesome') {
+function showSubcategoryModal(categoryId, categoryName, parentSubcategoryId = null, id = null, name = '', displayName = '', slug = '', icon = 'fa-folder-open', order = 0, isHidden = false, iconType = 'fontawesome') {
   const modal = document.getElementById('subcategoryModal');
   const title = document.getElementById('subcategoryModalTitle');
   
   document.getElementById('subcategoryCategoryId').value = categoryId;
+  document.getElementById('subcategoryParentId').value = parentSubcategoryId || '';
   document.getElementById('subcategoryId').value = id || '';
   document.getElementById('subcategoryName').value = name;
   document.getElementById('subcategoryDisplayName').value = displayName;
@@ -564,7 +565,8 @@ function showSubcategoryModal(categoryId, categoryName, id = null, name = '', di
     document.getElementById('subcategoryIconImageGroup').classList.add('hidden');
   }
   
-  title.textContent = id ? 'Editar Subcategoría' : `Nueva Subcategoría en ${categoryName}`;
+  const levelText = parentSubcategoryId ? 'Sub-subcategoría' : 'Subcategoría';
+  title.textContent = id ? `Editar ${levelText}` : `Nueva ${levelText} en ${categoryName}`;
   modal.classList.remove('hidden');
   
   // Auto-generar slug
@@ -578,10 +580,10 @@ function showSubcategoryModal(categoryId, categoryName, id = null, name = '', di
   });
 }
 
-function editSubcategoryModal(id, name, displayName, slug, icon, order, categoryId, isHidden, iconType = 'fontawesome') {
+function editSubcategoryModal(id, name, displayName, slug, icon, order, categoryId, isHidden, iconType = 'fontawesome', parentSubcategoryId = null) {
   const categoryName = document.querySelector(`button[onclick*="showSubcategoryModal(${categoryId}"]`)
     ?.closest('.mb-6')?.querySelector('h3')?.textContent.trim() || '';
-  showSubcategoryModal(categoryId, categoryName, id, name, displayName, slug, icon, order, isHidden, iconType);
+  showSubcategoryModal(categoryId, categoryName, parentSubcategoryId, id, name, displayName, slug, icon, order, isHidden, iconType);
 }
 
 // Form handlers
@@ -640,6 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const id = document.getElementById('subcategoryId').value;
       const categoryId = document.getElementById('subcategoryCategoryId').value;
+      const parentSubcategoryId = document.getElementById('subcategoryParentId').value;
       const iconType = document.getElementById('subcategoryIconType').value;
       const icon = iconType === 'image' 
         ? document.getElementById('subcategoryIconImage').value 
@@ -647,6 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const data = {
         category_id: parseInt(categoryId),
+        parent_subcategory_id: parentSubcategoryId ? parseInt(parentSubcategoryId) : null,
         name: document.getElementById('subcategoryName').value,
         display_name: document.getElementById('subcategoryDisplayName').value,
         slug: document.getElementById('subcategorySlug').value,

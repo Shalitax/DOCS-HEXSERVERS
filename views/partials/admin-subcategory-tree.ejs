@@ -1,0 +1,38 @@
+<% subcategories.forEach(sub => { %>
+  <div class="mb-2">
+    <div class="flex items-center justify-between glass rounded-lg px-3 py-2">
+      <div class="flex items-center space-x-2">
+        <% if (sub.icon_type === 'image') { %>
+          <img src="<%= sub.icon %>" alt="" class="w-4 h-4 object-contain" onerror="this.style.display='none'">
+        <% } else { %>
+          <i class="<%= sub.icon.includes(' ') ? sub.icon : 'fas ' + sub.icon %> text-blue-400 text-sm"></i>
+        <% } %>
+        <span class="text-sm"><%= sub.display_name %></span>
+        <span class="text-xs text-gray-500">(<%= sub.slug %>)</span>
+        <% if (sub.is_hidden) { %>
+          <span class="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+            <i class="fas fa-eye-slash mr-1"></i>Oculto
+          </span>
+        <% } %>
+      </div>
+      <div class="flex space-x-1">
+        <button onclick="showSubcategoryModal(<%= category.id %>, '<%= category.display_name %>', <%= sub.id %>)" class="glass px-2 py-1 rounded hover:bg-green-500/20 text-green-400 transition-all text-xs" title="Nueva Sub-subcategoría">
+          <i class="fas fa-plus"></i>
+        </button>
+        <button onclick="editSubcategory(<%= sub.id %>, '<%= sub.name %>', '<%= sub.display_name %>', '<%= sub.slug %>', '<%= sub.icon %>', <%= sub.order_index %>, <%= category.id %>, <%= sub.is_hidden ? 1 : 0 %>, '<%= sub.icon_type || 'fontawesome' %>', <%= sub.parent_subcategory_id || 'null' %>)" class="glass px-2 py-1 rounded hover:bg-blue-500/20 text-blue-400 transition-all text-xs">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button onclick="deleteSubcategory(<%= sub.id %>, '<%= sub.display_name %>')" class="glass px-2 py-1 rounded hover:bg-red-500/20 text-red-400 transition-all text-xs">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Sub-subcategorías (recursivo) -->
+    <% if (sub.subcategories && sub.subcategories.length > 0) { %>
+      <div class="ml-6 mt-2 space-y-2 border-l-2 border-white/10 pl-4">
+        <%- include('../partials/admin-subcategory-tree', { subcategories: sub.subcategories, category: category }) %>
+      </div>
+    <% } %>
+  </div>
+<% }); %>

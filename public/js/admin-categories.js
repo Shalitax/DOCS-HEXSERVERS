@@ -6,15 +6,13 @@ function showCategoryModal() {
   document.getElementById('categoryModal').classList.remove('hidden');
 }
 
-function showSubcategoryModal(categoryId, categoryName) {
-  document.getElementById('subcategoryModalTitle').textContent = `Nueva Subcategoría en ${categoryName}`;
+function showSubcategoryModal(categoryId, categoryName, parentSubcategoryId = null) {
+  const levelText = parentSubcategoryId ? 'Sub-subcategoría' : 'Subcategoría';
+  document.getElementById('subcategoryModalTitle').textContent = `Nueva ${levelText} en ${categoryName}`;
   document.getElementById('subcategoryForm').reset();
   document.getElementById('subcategoryCategoryId').value = categoryId;
+  document.getElementById('subcategoryParentId').value = parentSubcategoryId || '';
   document.getElementById('subcategoryModal').classList.remove('hidden');
-}
-
-function hideModal(modalId) {
-  document.getElementById(modalId).classList.add('hidden');
 }
 
 // Auto-generar slug
@@ -68,8 +66,10 @@ document.getElementById('subcategoryForm').addEventListener('submit', async (e) 
   e.preventDefault();
   
   const id = document.getElementById('subcategoryId').value;
+  const parentSubcategoryId = document.getElementById('subcategoryParentId').value;
   const data = {
     category_id: parseInt(document.getElementById('subcategoryCategoryId').value),
+    parent_subcategory_id: parentSubcategoryId ? parseInt(parentSubcategoryId) : null,
     name: document.getElementById('subcategoryName').value,
     display_name: document.getElementById('subcategoryDisplayName').value,
     slug: document.getElementById('subcategorySlug').value,
@@ -137,9 +137,11 @@ async function deleteCategory(id, name) {
 }
 
 // Editar subcategoría
-function editSubcategory(id, name, displayName, slug, icon, order, categoryId, isHidden = 0) {
-  document.getElementById('subcategoryModalTitle').textContent = 'Editar Subcategoría';
+function editSubcategory(id, name, displayName, slug, icon, order, categoryId, isHidden = 0, iconType = 'fontawesome', parentSubcategoryId = null) {
+  const levelText = parentSubcategoryId ? 'Sub-subcategoría' : 'Subcategoría';
+  document.getElementById('subcategoryModalTitle').textContent = `Editar ${levelText}`;
   document.getElementById('subcategoryCategoryId').value = categoryId;
+  document.getElementById('subcategoryParentId').value = parentSubcategoryId || '';
   document.getElementById('subcategoryId').value = id;
   document.getElementById('subcategoryName').value = name;
   document.getElementById('subcategoryDisplayName').value = displayName;
@@ -177,12 +179,12 @@ async function deleteSubcategory(id, name) {
 // Cerrar modales al hacer clic fuera
 document.getElementById('categoryModal').addEventListener('click', (e) => {
   if (e.target.id === 'categoryModal') {
-    hideModal('categoryModal');
+    document.getElementById('categoryModal').classList.add('hidden');
   }
 });
 
 document.getElementById('subcategoryModal').addEventListener('click', (e) => {
   if (e.target.id === 'subcategoryModal') {
-    hideModal('subcategoryModal');
+    document.getElementById('subcategoryModal').classList.add('hidden');
   }
 });

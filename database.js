@@ -44,6 +44,7 @@ function initDatabase() {
         CREATE TABLE IF NOT EXISTS subcategories (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           category_id INTEGER NOT NULL,
+          parent_subcategory_id INTEGER,
           name TEXT NOT NULL,
           display_name TEXT NOT NULL,
           slug TEXT NOT NULL,
@@ -53,13 +54,14 @@ function initDatabase() {
           is_hidden INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
-          UNIQUE(category_id, slug)
+          FOREIGN KEY (parent_subcategory_id) REFERENCES subcategories(id) ON DELETE CASCADE
         )
       `);
       
       // Agregar columnas si no existen (para bases de datos existentes)
       db.run(`ALTER TABLE subcategories ADD COLUMN is_hidden INTEGER DEFAULT 0`, () => {});
       db.run(`ALTER TABLE subcategories ADD COLUMN icon_type TEXT DEFAULT 'fontawesome'`, () => {});
+      db.run(`ALTER TABLE subcategories ADD COLUMN parent_subcategory_id INTEGER`, () => {});
 
       // Tabla de documentación
       db.run(`
@@ -268,7 +270,7 @@ const subcategoryDb = {
   getByCategoryId: (categoryId) => {
     return new Promise((resolve, reject) => {
       db.all(
-        'SELECT * FROM subcategories WHERE category_id = ? ORDER BY order_index ASC, name ASC',
+        'SELECT * FROM subcategories WHERE category_id = ? AND parent_subcategory_id IS NULL ORDER BY order_index ASC, name ASC',
         [categoryId],
         (err, rows) => {
           if (err) reject(err);
@@ -278,11 +280,24 @@ const subcategoryDb = {
     });
   },
 
-  create: (categoryId, name, displayName, slug, icon = 'fa-folder-open', orderIndex = 0, isHidden = 0, iconType = 'fontawesome') => {
+  getByParentId: (parentId) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM subcategories WHERE parent_subcategory_id = ? ORDER BY order_index ASC, name ASC',
+        [parentId],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows || []);
+        }
+      );
+    });
+  },
+
+  create: (categoryId, name, displayName, slug, icon = 'fa-folder-open', orderIndex = 0, isHidden = 0, iconType = 'fontawesome', parentSubcategoryId = null) => {
     return new Promise((resolve, reject) => {
       db.run(
-        'INSERT INTO subcategories (category_id, name, display_name, slug, icon, order_index, is_hidden, icon_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [categoryId, name, displayName, slug, icon, orderIndex, isHidden, iconType],
+        'INSERT INTO subcategories (category_id, parent_subcategory_id, name, display_name, slug, icon, order_index, is_hidden, icon_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [categoryId, parentSubcategoryId, name, displayName, slug, icon, orderIndex, isHidden, iconType],
         function(err) {
           if (err) reject(err);
           else resolve(this.lastID);
@@ -291,11 +306,11 @@ const subcategoryDb = {
     });
   },
 
-  update: (id, name, displayName, slug, icon, orderIndex, isHidden = 0, iconType = 'fontawesome') => {
+  update: (id, name, displayName, slug, icon, orderIndex, isHidden = 0, iconType = 'fontawesome', parentSubcategoryId = null) => {
     return new Promise((resolve, reject) => {
       db.run(
-        'UPDATE subcategories SET name = ?, display_name = ?, slug = ?, icon = ?, order_index = ?, is_hidden = ?, icon_type = ? WHERE id = ?',
-        [name, displayName, slug, icon, orderIndex, isHidden, iconType, id],
+        'UPDATE subcategories SET name = ?, display_name = ?, slug = ?, icon = ?, order_index = ?, is_hidden = ?, icon_type = ?, parent_subcategory_id = ? WHERE id = ?',
+        [name, displayName, slug, icon, orderIndex, isHidden, iconType, parentSubcategoryId, id],
         (err) => {
           if (err) reject(err);
           else resolve();

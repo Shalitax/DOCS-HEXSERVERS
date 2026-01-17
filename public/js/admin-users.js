@@ -8,10 +8,6 @@ function showUserModal() {
   document.getElementById('userModal').classList.remove('hidden');
 }
 
-function hideModal(modalId) {
-  document.getElementById(modalId).classList.add('hidden');
-}
-
 // Form de usuario
 document.getElementById('userForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -92,6 +88,6 @@ async function deleteUser(id, username) {
 // Cerrar modal al hacer clic fuera
 document.getElementById('userModal').addEventListener('click', (e) => {
   if (e.target.id === 'userModal') {
-    hideModal('userModal');
+    document.getElementById('userModal').classList.add('hidden');
   }
 });

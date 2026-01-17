@@ -48,6 +48,55 @@ async function loadDocsStructure() {
     const categories = await categoryDb.getAll();
     const structure = [];
 
+    // Función recursiva para construir subcategorías anidadas
+    async function buildSubcategoryTree(parentId, categoryId, categorySlug) {
+      const subcategories = parentId 
+        ? await subcategoryDb.getByParentId(parentId)
+        : await subcategoryDb.getByCategoryId(categoryId);
+      
+      const result = [];
+      
+      for (const subcategory of subcategories) {
+        // Saltar subcategorías ocultas
+        if (subcategory.is_hidden) continue;
+        
+        const subcategoryData = {
+          id: subcategory.id,
+          name: subcategory.name,
+          displayName: subcategory.display_name,
+          slug: subcategory.slug,
+          icon: subcategory.icon,
+          icon_type: subcategory.icon_type || 'fontawesome',
+          order_index: subcategory.order_index,
+          is_hidden: subcategory.is_hidden,
+          parent_subcategory_id: subcategory.parent_subcategory_id,
+          subcategories: [],
+          guides: []
+        };
+
+        // Obtener sub-subcategorías recursivamente
+        subcategoryData.subcategories = await buildSubcategoryTree(subcategory.id, categoryId, categorySlug);
+
+        // Obtener documentos de esta subcategoría
+        const docs = await docDb.getBySubcategoryId(subcategory.id);
+        
+        for (const doc of docs) {
+          // Construir path completo recursivamente
+          subcategoryData.guides.push({
+            id: doc.id,
+            title: doc.title,
+            slug: doc.slug,
+            description: doc.description,
+            path: `${categorySlug}/${subcategory.slug}/${doc.slug}`
+          });
+        }
+
+        result.push(subcategoryData);
+      }
+      
+      return result;
+    }
+
     for (const category of categories) {
       // Saltar categorías ocultas
       if (category.is_hidden) continue;
@@ -64,38 +113,8 @@ async function loadDocsStructure() {
         subcategories: []
       };
 
-      const subcategories = await subcategoryDb.getByCategoryId(category.id);
-      
-      for (const subcategory of subcategories) {
-        // Saltar subcategorías ocultas
-        if (subcategory.is_hidden) continue;
-        
-        const subcategoryData = {
-          id: subcategory.id,
-          name: subcategory.name,
-          displayName: subcategory.display_name,
-          slug: subcategory.slug,
-          icon: subcategory.icon,
-          icon_type: subcategory.icon_type || 'fontawesome',
-          order_index: subcategory.order_index,
-          is_hidden: subcategory.is_hidden,
-          guides: []
-        };
-
-        const docs = await docDb.getBySubcategoryId(subcategory.id);
-        
-        for (const doc of docs) {
-          subcategoryData.guides.push({
-            id: doc.id,
-            title: doc.title,
-            slug: doc.slug,
-            description: doc.description,
-            path: `${category.slug}/${subcategory.slug}/${doc.slug}`
-          });
-        }
-
-        categoryData.subcategories.push(subcategoryData);
-      }
+      // Obtener subcategorías de nivel raíz (sin parent)
+      categoryData.subcategories = await buildSubcategoryTree(null, category.id, category.slug);
 
       structure.push(categoryData);
     }
@@ -443,10 +462,20 @@ app.delete('/api/admin/categories/:id', requireAuth, async (req, res) => {
 
 // Crear subcategoría
 app.post('/api/admin/subcategories', requireAuth, async (req, res) => {
-  const { category_id, name, display_name, slug, icon, order_index, is_hidden, icon_type } = req.body;
+  const { category_id, parent_subcategory_id, name, display_name, slug, icon, order_index, is_hidden, icon_type } = req.body;
   
   try {
-    const id = await subcategoryDb.create(category_id, name, display_name, slug, icon || 'fa-folder-open', order_index || 0, is_hidden ? 1 : 0, icon_type || 'fontawesome');
+    const id = await subcategoryDb.create(
+      category_id, 
+      name, 
+      display_name, 
+      slug, 
+      icon || 'fa-folder-open', 
+      order_index || 0, 
+      is_hidden ? 1 : 0, 
+      icon_type || 'fontawesome',
+      parent_subcategory_id || null
+    );
     res.json({ success: true, id });
   } catch (error) {
     console.error('Error creating subcategory:', error);
@@ -456,10 +485,20 @@ app.post('/api/admin/subcategories', requireAuth, async (req, res) => {
 
 // Actualizar subcategoría
 app.put('/api/admin/subcategories/:id', requireAuth, async (req, res) => {
-  const { name, display_name, slug, icon, order_index, is_hidden, icon_type } = req.body;
+  const { name, display_name, slug, icon, order_index, is_hidden, icon_type, parent_subcategory_id } = req.body;
   
   try {
-    await subcategoryDb.update(req.params.id, name, display_name, slug, icon, order_index, is_hidden ? 1 : 0, icon_type || 'fontawesome');
+    await subcategoryDb.update(
+      req.params.id, 
+      name, 
+      display_name, 
+      slug, 
+      icon, 
+      order_index, 
+      is_hidden ? 1 : 0, 
+      icon_type || 'fontawesome',
+      parent_subcategory_id || null
+    );
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar subcategoría' });
