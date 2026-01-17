@@ -100,7 +100,8 @@ async function createDefaultAdmin() {
       }
 
       if (!user) {
-        const hashedPassword = await bcrypt.hash('admin123', 10);
+        const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
+        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
         db.run(
           'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
           ['admin', hashedPassword, 'admin@hexservers.com'],
@@ -108,7 +109,9 @@ async function createDefaultAdmin() {
             if (err) {
               reject(err);
             } else {
-              console.log('✅ Usuario admin creado (username: admin, password: admin123)');
+              if (process.env.NODE_ENV !== 'production') {
+                console.log('✅ Usuario admin creado (username: admin, password: ' + defaultPassword + ')');
+              }
               resolve();
             }
           }
@@ -280,6 +283,15 @@ const subcategoryDb = {
     });
   },
 
+  getById: (id) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM subcategories WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  },
+
   // Obtener todas las subcategorías de una categoría (incluyendo anidadas) en formato plano
   getAllByCategoryIdFlat: async (categoryId) => {
     return new Promise((resolve, reject) => {
@@ -438,12 +450,18 @@ const docDb = {
     });
   },
 
-  update: (id, title, slug, description, content, orderIndex) => {
+  update: (id, title, slug, description, content, orderIndex, subcategoryId = null) => {
     return new Promise((resolve, reject) => {
-      db.run(
-        'UPDATE documentation SET title = ?, slug = ?, description = ?, content = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [title, slug, description, content, orderIndex, id],
-        (err) => {
+      // Si se proporciona subcategoryId, actualizar también la subcategoría
+      const query = subcategoryId 
+        ? 'UPDATE documentation SET title = ?, slug = ?, description = ?, content = ?, order_index = ?, subcategory_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+        : 'UPDATE documentation SET title = ?, slug = ?, description = ?, content = ?, order_index = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+      
+      const params = subcategoryId
+        ? [title, slug, description, content, orderIndex, subcategoryId, id]
+        : [title, slug, description, content, orderIndex, id];
+      
+      db.run(query, params, (err) => {
           if (err) reject(err);
           else resolve();
         }
@@ -460,24 +478,8 @@ const docDb = {
     });
   },
 
-  togglePublish: (id, isPublished) => {
-    return new Promise((resolve, reject) => {
-      db.run(
-        'UPDATE documentation SET is_published = ? WHERE id = ?',
-        [isPublished ? 1 : 0, id],
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-  },
-
   search: (query) => {
     return new Promise((resolve, reject) => {
-      // Si la búsqueda es muy específica, traer más resultados para filtrar después
-      const searchPattern = query.length <= 3 ? '%' : `%${query}%`;
-      
       db.all(
         `SELECT d.*, s.slug as subcategory_slug, s.display_name as subcategory_name,
                 c.slug as category_slug, c.display_name as category_name

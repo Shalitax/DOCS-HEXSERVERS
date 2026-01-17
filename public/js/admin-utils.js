@@ -8,12 +8,12 @@ function showConfirmModal(message, onConfirm, type = 'danger') {
   modal.innerHTML = `
     <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
       <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-        type === 'danger' ? 'bg-red-500/20' : type === 'warning' ? 'bg-yellow-500/20' : 'bg-blue-500/20'
+        type === 'danger' ? 'bg-red-500/20' : type === 'warning' ? 'bg-yellow-500/20' : 'bg-green-500/20'
       }">
         <i class="fas ${
           type === 'danger' ? 'fa-exclamation-triangle text-red-400' : 
           type === 'warning' ? 'fa-exclamation-circle text-yellow-400' : 
-          'fa-info-circle text-blue-400'
+          'fa-info-circle text-green-400'
         } text-2xl"></i>
       </div>
       <p class="text-lg text-gray-200 mb-6 text-center">${message}</p>
@@ -21,7 +21,7 @@ function showConfirmModal(message, onConfirm, type = 'danger') {
         <button id="confirmBtn" class="flex-1 bg-gradient-to-r ${
           type === 'danger' ? 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 
           type === 'warning' ? 'from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700' : 
-          'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+          'from-green-600 to-green-800 hover:from-green-700 hover:to-green-900'
         } px-4 py-2 rounded-lg transition-all text-white font-semibold">
           Confirmar
         </button>
@@ -58,16 +58,16 @@ function showAlertModal(message, type = 'success') {
   modal.innerHTML = `
     <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
       <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-        type === 'success' ? 'bg-green-500/20' : type === 'error' ? 'bg-red-500/20' : 'bg-blue-500/20'
+        type === 'success' ? 'bg-green-500/20' : type === 'error' ? 'bg-red-500/20' : 'bg-green-500/20'
       }">
         <i class="fas ${
           type === 'success' ? 'fa-check-circle text-green-400' : 
           type === 'error' ? 'fa-times-circle text-red-400' : 
-          'fa-info-circle text-blue-400'
+          'fa-info-circle text-green-400'
         } text-2xl"></i>
       </div>
       <p class="text-lg text-gray-200 mb-6 text-center">${message}</p>
-      <button onclick="this.closest('#tempAlertModal').remove()" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+      <button onclick="this.closest('#tempAlertModal').remove()" class="w-full bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
         Cerrar
       </button>
     </div>

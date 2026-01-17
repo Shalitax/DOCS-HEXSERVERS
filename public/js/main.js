@@ -28,13 +28,13 @@ function showConfirmModal(title, message, onConfirm, type = 'warning') {
     icon.className = 'fas fa-exclamation-triangle text-2xl text-red-400';
     confirmBtn.className = 'flex-1 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-white font-semibold';
   } else if (type === 'info') {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-blue-500/20';
-    icon.className = 'fas fa-info-circle text-2xl text-blue-400';
-    confirmBtn.className = 'flex-1 bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all text-white font-semibold';
+    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
+    icon.className = 'fas fa-info-circle text-2xl text-green-400';
+    confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
   } else {
     iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-yellow-500/20';
     icon.className = 'fas fa-exclamation-circle text-2xl text-yellow-400';
-    confirmBtn.className = 'flex-1 bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold';
+    confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
   }
   
   confirmCallback = onConfirm;
@@ -790,23 +790,113 @@ async function deleteDocument(id, title) {
 
 // ===== Sistema de Gestión de Documentación =====
 
+async function loadCategoriesForDoc() {
+  try {
+    const response = await fetch('/api/admin/categories');
+    const categories = await response.json();
+    
+    const categorySelect = document.getElementById('docCategory');
+    categorySelect.innerHTML = '<option value="" class="bg-gray-900">Selecciona una categoría</option>';
+    
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat.id;
+      option.textContent = cat.display_name;
+      option.className = 'bg-gray-900';
+      categorySelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error loading categories:', error);
+  }
+}
+
+async function loadSubcategoriesForDoc(categoryId, selectedSubcategoryId = null) {
+  try {
+    const response = await fetch(`/api/admin/subcategories/${categoryId}/flat`);
+    const subcategories = await response.json();
+    
+    const subcategorySelect = document.getElementById('docSubcategoryId');
+    subcategorySelect.innerHTML = '<option value="" class="bg-gray-900">Selecciona una subcategoría</option>';
+    
+    subcategories.forEach(sub => {
+      const option = document.createElement('option');
+      option.value = sub.id;
+      option.textContent = sub.indentedName;
+      option.className = 'bg-gray-900';
+      if (selectedSubcategoryId && sub.id == selectedSubcategoryId) {
+        option.selected = true;
+      }
+      subcategorySelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error loading subcategories:', error);
+  }
+}
+
 function showDocModal(subcategoryId) {
   document.getElementById('docModalTitle').textContent = 'Nueva Documentación';
   document.getElementById('docForm').reset();
   document.getElementById('docId').value = '';
-  document.getElementById('docSubcategoryId').value = subcategoryId;
+  
+  loadCategoriesForDoc().then(() => {
+    // Encontrar la categoría de la subcategoría
+    fetch('/api/admin/subcategories/all')
+      .then(res => res.json())
+      .then(subcategories => {
+        const sub = subcategories.find(s => s.id == subcategoryId);
+        if (sub) {
+          document.getElementById('docCategory').value = sub.category_id;
+          loadSubcategoriesForDoc(sub.category_id, subcategoryId);
+        }
+      });
+  });
+  
   document.getElementById('docModal').classList.remove('hidden');
 }
 
-function editDocModal(id, title, slug, description, content, orderIndex) {
-  document.getElementById('docModalTitle').textContent = 'Editar Documentación';
-  document.getElementById('docId').value = id;
-  document.getElementById('docTitle').value = title;
-  document.getElementById('docSlug').value = slug;
-  document.getElementById('docDescription').value = description || '';
-  document.getElementById('docContent').value = content;
-  document.getElementById('docOrder').value = orderIndex;
-  document.getElementById('docModal').classList.remove('hidden');
+async function editDocModal(docId) {
+  try {
+    // Obtener todos los datos del documento desde el servidor
+    const response = await fetch(`/api/admin/docs/${docId}`);
+    const doc = await response.json();
+    
+    document.getElementById('docModalTitle').textContent = 'Editar Documentación';
+    document.getElementById('docId').value = doc.id;
+    document.getElementById('docTitle').value = doc.title;
+    document.getElementById('docSlug').value = doc.slug;
+    document.getElementById('docDescription').value = doc.description || '';
+    document.getElementById('docContent').value = doc.content;
+    document.getElementById('docOrder').value = doc.order_index;
+    
+    // Cargar categorías
+    await loadCategoriesForDoc();
+    
+    try {
+      const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
+      let subcategory = await subResponse.json();
+      
+      // Si es un array, tomar el primer elemento
+      if (Array.isArray(subcategory)) {
+        subcategory = subcategory[0];
+      }
+      
+      if (subcategory) {
+        // Seleccionar la categoría
+        const categorySelect = document.getElementById('docCategory');
+        categorySelect.value = String(subcategory.category_id);
+        
+        // Cargar subcategorías
+        await loadSubcategoriesForDoc(subcategory.category_id, doc.subcategory_id);
+      }
+    } catch (error) {
+      console.error('Error loading subcategory:', error);
+    }
+    
+    document.getElementById('docModal').classList.remove('hidden');
+  } catch (error) {
+    console.error('Error loading document:', error);
+    alert('Error al cargar el documento');
+  }
 }
 
 // Auto-generar slug desde el título
@@ -825,6 +915,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form de documentación
   const docForm = document.getElementById('docForm');
   if (docForm) {
+    // Cargar subcategorías cuando se selecciona una categoría
+    const docCategory = document.getElementById('docCategory');
+    if (docCategory) {
+      docCategory.addEventListener('change', (e) => {
+        const categoryId = e.target.value;
+        if (categoryId) {
+          loadSubcategoriesForDoc(categoryId);
+        } else {
+          document.getElementById('docSubcategoryId').innerHTML = '<option value="" class="bg-gray-900">Primero selecciona categoría</option>';
+        }
+      });
+    }
+    
     docForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -865,4 +968,3 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-console.log('🎉 HexServers Docs cargado correctamente');

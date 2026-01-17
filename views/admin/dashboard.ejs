@@ -79,7 +79,7 @@
         <i class="fas fa-bolt mr-2 text-yellow-400"></i>Acciones Rápidas
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <a href="/admin/docs/new" class="glass-dark p-4 rounded-lg hover:bg-white/10 transition-all border border-white/5 group">
+        <a href="/admin/docs" class="glass-dark p-4 rounded-lg hover:bg-white/10 transition-all border border-white/5 group">
           <i class="fas fa-plus-circle text-green-400 text-2xl mb-2 group-hover:scale-110 transition-transform inline-block"></i>
           <h3 class="font-semibold">Nueva Documentación</h3>
           <p class="text-sm text-gray-400">Crear una nueva guía</p>
@@ -113,7 +113,7 @@
       
       <% if (docs.length === 0) { %>
         <p class="text-gray-400 text-center py-8">
-          No hay documentación aún. <a href="/admin/docs/new" class="text-purple-400 hover:underline">Crea la primera</a>
+          No hay documentación aún. <a href="/admin/docs" class="text-purple-400 hover:underline">Crea la primera</a>
         </p>
       <% } else { %>
         <div class="space-y-2">
@@ -129,8 +129,8 @@
                   </p>
                 </div>
                 <div class="flex space-x-2">
-                  <a href="/admin/docs/edit/<%= doc.id %>" class="glass px-3 py-2 rounded hover:bg-blue-500/20 transition-all text-blue-400">
-                    <i class="fas fa-edit"></i>
+                  <a href="/admin/docs" class="glass px-3 py-2 rounded hover:bg-blue-500/20 transition-all text-blue-400">
+                    <i class="fas fa-arrow-right"></i>
                   </a>
                   <form method="POST" action="/admin/docs/delete/<%= doc.id %>" class="inline" onsubmit="event.preventDefault(); showConfirmModal('¿Eliminar este documento?', () => this.submit(), 'danger')">
                     <button type="submit" class="glass px-3 py-2 rounded hover:bg-red-500/20 transition-all text-red-400">

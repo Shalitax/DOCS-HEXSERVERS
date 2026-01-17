@@ -42,11 +42,13 @@ app.use(session({
     db: 'sessions.db',
     dir: __dirname
   }),
-  secret: 'hexservers-secret-key-change-in-production',
+  secret: process.env.SESSION_SECRET || 'hexservers-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+    secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+    httpOnly: true
   }
 }));
 
@@ -380,21 +382,6 @@ app.get('/admin/docs', requireAuth, async (req, res) => {
   res.render('admin/docs', { structure });
 });
 
-// Crear nueva documentación GET
-app.get('/admin/docs/new', requireAuth, async (req, res) => {
-  const categories = await categoryDb.getAll();
-  const subcategories = await subcategoryDb.getAll();
-  const preselectedSubcategory = req.query.subcategory || null;
-  
-  res.render('admin/doc-form', { 
-    doc: null, 
-    categories, 
-    subcategories,
-    preselectedSubcategory,
-    mode: 'create'
-  });
-});
-
 // Crear nueva documentación POST
 app.post('/admin/docs/new', requireAuth, async (req, res) => {
   const { title, slug, description, content, subcategory_id, order_index } = req.body;
@@ -426,26 +413,12 @@ app.post('/admin/docs/new', requireAuth, async (req, res) => {
   }
 });
 
-// Editar documentación GET
-app.get('/admin/docs/edit/:id', requireAuth, async (req, res) => {
-  const doc = await docDb.getById(req.params.id);
-  const categories = await categoryDb.getAll();
-  const subcategories = await subcategoryDb.getAll();
-  
-  res.render('admin/doc-form', { 
-    doc, 
-    categories, 
-    subcategories,
-    mode: 'edit'
-  });
-});
-
 // Editar documentación POST
 app.post('/admin/docs/edit/:id', requireAuth, async (req, res) => {
-  const { title, slug, description, content, order_index } = req.body;
+  const { title, slug, description, content, order_index, subcategory_id } = req.body;
   
   try {
-    await docDb.update(req.params.id, title, slug, description, content, order_index || 0);
+    await docDb.update(req.params.id, title, slug, description, content, order_index || 0, subcategory_id);
     
     // Si es una petición JSON, devolver JSON
     if (req.headers['content-type'] === 'application/json') {
@@ -511,6 +484,16 @@ app.get('/api/admin/subcategories/:categoryId/flat', requireAuth, async (req, re
     res.json(subcategories);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener subcategorías' });
+  }
+});
+
+// Obtener todas las categorías
+app.get('/api/admin/categories', requireAuth, async (req, res) => {
+  try {
+    const categories = await categoryDb.getAll();
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener categorías' });
   }
 });
 
@@ -618,6 +601,34 @@ app.get('/api/admin/docs/content/:id', requireAuth, async (req, res) => {
   }
 });
 
+// API para obtener un documento completo
+app.get('/api/admin/docs/:id', requireAuth, async (req, res) => {
+  try {
+    const doc = await docDb.getById(req.params.id);
+    if (!doc) {
+      return res.status(404).json({ error: 'Documento no encontrado' });
+    }
+    res.json(doc);
+  } catch (error) {
+    console.error('Error getting doc:', error);
+    res.status(500).json({ error: 'Error al obtener el documento' });
+  }
+});
+
+// API para obtener una subcategoría
+app.get('/api/admin/subcategories/:id', requireAuth, async (req, res) => {
+  try {
+    const subcategory = await subcategoryDb.getById(req.params.id);
+    if (!subcategory) {
+      return res.status(404).json({ error: 'Subcategoría no encontrada' });
+    }
+    res.json(subcategory);
+  } catch (error) {
+    console.error('Error getting subcategory:', error);
+    res.status(500).json({ error: 'Error al obtener la subcategoría' });
+  }
+});
+
 app.post('/api/admin/docs/quick-edit/:id', requireAuth, async (req, res) => {
   const { content } = req.body;
   
@@ -701,7 +712,10 @@ app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
     app.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
       console.log(`🔐 Panel admin: http://localhost:${PORT}/admin`);
-      console.log(`👤 Usuario: admin | Contraseña: admin123`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`👤 Usuario: admin | Contraseña: admin123`);
+        console.log('⚠️  CAMBIAR CREDENCIALES ANTES DE PRODUCCION');
+      }
     });
   } catch (error) {
     console.error('Error al inicializar:', error);

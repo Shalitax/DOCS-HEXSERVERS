@@ -17,12 +17,12 @@
           Gestión de Documentación
         </h1>
         <div class="flex space-x-3">
-          <button onclick="showCategoryModal()" class="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+          <button onclick="showCategoryModal()" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
             <i class="fas fa-plus mr-2"></i>Nueva Categoría
           </button>
-          <a href="/admin/docs/new" class="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all text-white font-semibold">
+          <button onclick="showDocModal()" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
             <i class="fas fa-plus mr-2"></i>Nueva Documentación
-          </a>
+          </button>
           <a href="/admin" class="glass px-4 py-2 rounded-lg hover:bg-white/20 transition-all font-medium">
             <i class="fas fa-arrow-left mr-2"></i>Volver
           </a>
@@ -36,7 +36,7 @@
     <div class="grid gap-6">
       <% if (structure.length === 0) { %>
         <div class="glass rounded-xl p-8 border border-white/20 text-center text-gray-400 shadow-xl">
-          No hay documentación disponible. <a href="/admin/docs/new" class="text-purple-400 hover:underline">Crea la primera</a>
+          No hay documentación disponible. <button onclick="showDocModal()" class="text-purple-400 hover:underline">Crea la primera</button>
         </div>
       <% } else { %>
         <% structure.forEach(category => { %>
@@ -158,7 +158,7 @@
           <label for="categoryHidden" class="ml-2 text-sm font-medium text-gray-300">Ocultar del sidebar (solo visible en búsquedas)</label>
         </div>
         <div class="flex space-x-3 mt-6">
-          <button type="submit" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+          <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
             Guardar
           </button>
           <button type="button" onclick="hideModal('categoryModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
@@ -202,7 +202,7 @@
           <label for="subcategoryHidden" class="ml-2 text-sm font-medium text-gray-300">Ocultar del sidebar (solo visible en búsquedas)</label>
         </div>
         <div class="flex space-x-3 mt-6">
-          <button type="submit" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+          <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
             Guardar
           </button>
           <button type="button" onclick="hideModal('subcategoryModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
@@ -213,8 +213,224 @@
     </div>
   </div>
 
+  <!-- Modal para Documentación -->
+  <div id="docModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="glass rounded-xl p-6 border border-white/20 max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slide-up shadow-2xl">
+      <h2 id="docModalTitle" class="text-2xl font-bold mb-5 font-display">Nueva Documentación</h2>
+      <form id="docForm" class="space-y-4">
+        <input type="hidden" id="docId">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Categoría</label>
+            <select id="docCategory" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white text-sm">
+              <option value="" class="bg-gray-900">Selecciona una categoría</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Subcategoría</label>
+            <select id="docSubcategoryId" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white text-sm">
+              <option value="" class="bg-gray-900">Primero selecciona categoría</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Título</label>
+            <input type="text" id="docTitle" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Slug (URL)</label>
+            <input type="text" id="docSlug" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium mb-2">Descripción</label>
+          <input type="text" id="docDescription" class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium mb-2">Contenido (Markdown)</label>
+          <textarea id="docContent" required rows="8" class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 font-mono text-sm resize-y" placeholder="# Tu contenido en Markdown aquí..."></textarea>
+          <p class="text-xs text-gray-400 mt-1">Soporta Markdown completo con código, tablas, imágenes, etc.</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Orden</label>
+            <input type="number" id="docOrder" value="0" class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-3">
+          <button type="button" onclick="hideModal('docModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all font-medium">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+            <i class="fas fa-save mr-2"></i>Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/js/admin-utils.js"></script>
   <script src="/js/admin-categories.js"></script>
+  <script>
+    // Funciones para modal de documentación
+    function showDocModal(subcategoryId = null) {
+      document.getElementById('docModalTitle').textContent = 'Nueva Documentación';
+      document.getElementById('docForm').reset();
+      document.getElementById('docId').value = '';
+      
+      loadCategoriesForDoc();
+      
+      if (subcategoryId) {
+        setTimeout(() => {
+          const subcategorySelect = document.getElementById('docSubcategoryId');
+          const option = Array.from(subcategorySelect.options).find(opt => opt.value == subcategoryId);
+          if (option) {
+            const categoryId = option.dataset.categoryId;
+            document.getElementById('docCategory').value = categoryId;
+            loadSubcategoriesForDoc(categoryId, subcategoryId);
+          }
+        }, 100);
+      }
+      
+      document.getElementById('docModal').classList.remove('hidden');
+    }
+
+    async function editDocModal(docId) {
+      try {
+        // Obtener datos del documento
+        const response = await fetch(`/api/admin/docs/${docId}`);
+        const doc = await response.json();
+        
+        document.getElementById('docModalTitle').textContent = 'Editar Documentación';
+        document.getElementById('docId').value = doc.id;
+        document.getElementById('docTitle').value = doc.title;
+        document.getElementById('docSlug').value = doc.slug;
+        document.getElementById('docDescription').value = doc.description || '';
+        document.getElementById('docContent').value = doc.content;
+        document.getElementById('docOrder').value = doc.order_index;
+        
+        // Cargar categorías
+        await loadCategoriesForDoc();
+        
+        // Obtener la categoría de la subcategoría
+        const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
+        let subcategory = await subResponse.json();
+        
+        // Si es un array, tomar el primer elemento
+        if (Array.isArray(subcategory)) {
+          subcategory = subcategory[0];
+        }
+        
+        // Seleccionar la categoría
+        const categorySelect = document.getElementById('docCategory');
+        categorySelect.value = String(subcategory.category_id);
+        
+        // Cargar subcategorías
+        await loadSubcategoriesForDoc(subcategory.category_id, doc.subcategory_id);
+        
+        document.getElementById('docModal').classList.remove('hidden');
+      } catch (error) {
+        console.error('Error al cargar documento:', error);
+        alert('Error al cargar el documento');
+      }
+    }
+
+    async function loadCategoriesForDoc() {
+      const categories = await fetch('/api/admin/categories').then(res => res.json());
+      const select = document.getElementById('docCategory');
+      select.innerHTML = '<option value="">Selecciona una categoría</option>';
+      categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.display_name;
+        select.appendChild(option);
+      });
+      return categories;
+    }
+
+    function loadSubcategoriesForDoc(categoryId, selectedId = null) {
+      if (!categoryId) {
+        const select = document.getElementById('docSubcategoryId');
+        select.innerHTML = '<option value="">Primero selecciona categoría</option>';
+        return Promise.resolve();
+      }
+      
+      return fetch(`/api/admin/subcategories/${categoryId}/flat`)
+        .then(res => res.json())
+        .then(subcategories => {
+          const select = document.getElementById('docSubcategoryId');
+          select.innerHTML = '<option value="">Selecciona una subcategoría</option>';
+          subcategories.forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub.id;
+            option.textContent = sub.indentedName;
+            option.dataset.categoryId = categoryId;
+            if (selectedId && sub.id == selectedId) {
+              option.selected = true;
+            }
+            select.appendChild(option);
+          });
+        });
+    }
+
+    // Event listener para cambio de categoría
+    document.getElementById('docCategory')?.addEventListener('change', function() {
+      loadSubcategoriesForDoc(this.value);
+    });
+
+    // Auto-generar slug desde título
+    document.getElementById('docTitle')?.addEventListener('input', function() {
+      const slug = this.value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      document.getElementById('docSlug').value = slug;
+    });
+
+    // Submit del formulario
+    document.getElementById('docForm')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const id = document.getElementById('docId').value;
+      const data = {
+        subcategory_id: document.getElementById('docSubcategoryId').value,
+        title: document.getElementById('docTitle').value,
+        slug: document.getElementById('docSlug').value,
+        description: document.getElementById('docDescription').value,
+        content: document.getElementById('docContent').value,
+        order_index: document.getElementById('docOrder').value
+      };
+      
+      try {
+        const response = await fetch(id ? `/admin/docs/edit/${id}` : '/admin/docs/new', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          hideModal('docModal');
+          location.reload();
+        } else {
+          alert(result.error || 'Error al guardar la documentación');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar la documentación');
+      }
+    });
+  </script>
 
 </body>
 </html>
