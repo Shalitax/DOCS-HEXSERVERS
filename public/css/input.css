@@ -103,7 +103,12 @@
 }
 
 .markdown-content pre code {
-  @apply bg-transparent text-gray-300 p-0;
+  @apply bg-transparent text-gray-300 p-0 border-0;
+}
+
+/* Estilos para highlight.js */
+.markdown-content .hljs {
+  @apply bg-black/70 p-4 rounded-lg text-sm leading-relaxed;
 }
 
 .markdown-content a {

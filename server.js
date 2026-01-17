@@ -4,6 +4,7 @@ const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const bcrypt = require('bcrypt');
 const MarkdownIt = require('markdown-it');
+const hljs = require('highlight.js');
 const bodyParser = require('body-parser');
 
 const { initDatabase, createDefaultAdmin, userDb, categoryDb, subcategoryDb, docDb } = require('./database');
@@ -13,7 +14,17 @@ const app = express();
 const md = new MarkdownIt({
   html: true,
   linkify: true,
-  typographer: true
+  typographer: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+               hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+               '</code></pre>';
+      } catch (__) {}
+    }
+    return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+  }
 });
 
 const PORT = process.env.PORT || 3000;
