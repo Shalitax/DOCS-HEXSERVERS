@@ -325,11 +325,21 @@
         
         // Obtener la categoría de la subcategoría
         const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
+        
+        if (!subResponse.ok) {
+          throw new Error('No se pudo obtener la información de la subcategoría');
+        }
+        
         let subcategory = await subResponse.json();
         
         // Si es un array, tomar el primer elemento
         if (Array.isArray(subcategory)) {
           subcategory = subcategory[0];
+        }
+        
+        // Verificar que la subcategoría existe y tiene category_id
+        if (!subcategory || !subcategory.category_id) {
+          throw new Error('La subcategoría asociada no existe o está corrupta');
         }
         
         // Seleccionar la categoría
