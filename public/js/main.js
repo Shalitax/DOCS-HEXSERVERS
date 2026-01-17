@@ -293,15 +293,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const chevron = document.getElementById(`chevron-${categoryId}`);
     const savedState = localStorage.getItem(`category-${categoryId}`);
     
-    if (savedState === 'collapsed') {
-      content.style.maxHeight = '0px';
-      content.style.opacity = '0';
-      chevron.style.transform = 'rotate(-90deg)';
-    } else {
-      // Por defecto expandido
+    if (savedState === 'expanded') {
+      // Solo expandir si se guardó explícitamente como expandido
       content.style.maxHeight = content.scrollHeight + 'px';
       content.style.opacity = '1';
       chevron.style.transform = 'rotate(0deg)';
+    } else {
+      // Por defecto colapsado
+      content.style.maxHeight = '0px';
+      content.style.opacity = '0';
+      chevron.style.transform = 'rotate(-90deg)';
     }
     
     // Agregar transición
@@ -315,15 +316,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const chevron = document.getElementById(`chevron-sub-${subcategoryId}`);
     const savedState = localStorage.getItem(`subcategory-${subcategoryId}`);
     
-    if (savedState === 'collapsed') {
-      content.style.maxHeight = '0px';
-      content.style.opacity = '0';
-      chevron.style.transform = 'rotate(-90deg)';
-    } else {
-      // Por defecto expandido
+    if (savedState === 'expanded') {
+      // Solo expandir si se guardó explícitamente como expandido
       content.style.maxHeight = content.scrollHeight + 'px';
       content.style.opacity = '1';
       chevron.style.transform = 'rotate(0deg)';
+    } else {
+      // Por defecto colapsado
+      content.style.maxHeight = '0px';
+      content.style.opacity = '0';
+      chevron.style.transform = 'rotate(-90deg)';
     }
     
     // Agregar transición
