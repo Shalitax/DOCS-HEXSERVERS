@@ -9,6 +9,7 @@ const bodyParser = require('body-parser');
 
 const { initDatabase, createDefaultAdmin, userDb, categoryDb, subcategoryDb, docDb } = require('./database');
 const { requireAuth, requireGuest, passUser } = require('./middleware/auth');
+const { generatePageMetadata, generateBreadcrumb, getBaseMetadata } = require('./metadata');
 
 const app = express();
 const md = new MarkdownIt({
@@ -146,11 +147,18 @@ app.get('/', async (req, res) => {
   const structure = await loadDocsStructure();
   
   if (!structure || structure.length === 0) {
+    const pageMetadata = generatePageMetadata({
+      title: 'Documentación',
+      description: 'Bienvenido a la documentación de HexServers'
+    });
+
     return res.render('index', {
       structure: [],
       content: '<h1>Bienvenido a la documentación</h1><p>No hay guías disponibles aún.</p>',
       title: 'Documentación',
-      currentPath: null
+      currentPath: null,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
     });
   }
 
@@ -163,11 +171,17 @@ app.get('/', async (req, res) => {
     return res.redirect(`/docs/${firstGuide.path}`);
   }
 
+  const pageMetadata = generatePageMetadata({
+    title: 'Documentación'
+  });
+
   res.render('index', {
     structure,
     content: '<h1>Bienvenido a la documentación</h1>',
     title: 'Documentación',
-    currentPath: null
+    currentPath: null,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
   });
 });
 
@@ -180,13 +194,36 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
     const doc = await docDb.getBySlug(category, subcategory, guide);
     
     if (!doc) {
+      const pageMetadata = generatePageMetadata({
+        title: 'Error 404',
+        description: 'La página que buscas no existe'
+      });
+
       return res.status(404).render('index', {
         structure,
         content: '<h1>Guía no encontrada</h1><p>La guía que buscas no existe.</p>',
         title: 'Error 404',
-        currentPath: null
+        currentPath: null,
+        metadata: pageMetadata,
+        baseMetadata: getBaseMetadata()
       });
     }
+
+    // Obtener información de categoría y subcategoría para breadcrumb
+    const categoryData = await categoryDb.getBySlug(category);
+    const subcategoryData = await subcategoryDb.getBySlug(subcategory, categoryData?.id);
+
+    // Generar metadata para la página del documento
+    const breadcrumb = generateBreadcrumb(doc, subcategoryData, categoryData);
+    const pageMetadata = generatePageMetadata({
+      title: doc.title,
+      description: doc.content.substring(0, 160), // Primeros 160 caracteres como descripción
+      type: 'article',
+      slug: `docs/${category}/${subcategory}/${guide}`,
+      datePublished: doc.created_at,
+      dateModified: doc.updated_at,
+      breadcrumb
+    });
 
     const htmlContent = md.render(doc.content);
 
@@ -195,15 +232,24 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
       content: htmlContent,
       title: doc.title,
       currentPath: `${category}/${subcategory}/${guide}`,
-      docId: doc.id
+      docId: doc.id,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
     });
   } catch (error) {
     console.error('Error loading guide:', error);
+    const pageMetadata = generatePageMetadata({
+      title: 'Error',
+      description: 'Hubo un error al cargar la página'
+    });
+
     res.status(500).render('index', {
       structure,
       content: '<h1>Error</h1><p>Hubo un error al cargar la guía.</p>',
       title: 'Error',
-      currentPath: null
+      currentPath: null,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
     });
   }
 });
@@ -274,7 +320,17 @@ app.get('/api/search', async (req, res) => {
 
 // Login GET
 app.get('/admin/login', requireGuest, (req, res) => {
-  res.render('admin/login', { error: null });
+  const pageMetadata = generatePageMetadata({
+    title: 'Login - Admin',
+    description: 'Panel de administración de HexServers Docs',
+    robots: 'noindex, nofollow'
+  });
+
+  res.render('admin/login', { 
+    error: null,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
 });
 
 // Login POST
@@ -319,11 +375,18 @@ app.get('/admin', requireAuth, async (req, res) => {
   const allCategories = await categoryDb.getAll();
   const allSubcategories = await subcategoryDb.getAll();
   
+  const pageMetadata = generatePageMetadata({
+    title: 'Dashboard - Admin',
+    description: 'Panel de administración de HexServers Docs'
+  });
+  
   res.render('admin/dashboard', {
     structure,
     docs: allDocs,
     categories: allCategories,
-    subcategories: allSubcategories
+    subcategories: allSubcategories,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
   });
 });
 
@@ -338,7 +401,16 @@ app.get('/admin/categories', requireAuth, async (req, res) => {
     subcategories: allSubcategories.filter(sub => sub.category_id === cat.id)
   }));
   
-  res.render('admin/categories', { categories: categoriesWithSubs });
+  const pageMetadata = generatePageMetadata({
+    title: 'Categorías - Admin',
+    description: 'Gestión de categorías y subcategorías'
+  });
+  
+  res.render('admin/categories', { 
+    categories: categoriesWithSubs,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
 });
 
 // Gestión de documentación
@@ -379,7 +451,16 @@ app.get('/admin/docs', requireAuth, async (req, res) => {
     });
   }
   
-  res.render('admin/docs', { structure });
+  const pageMetadata = generatePageMetadata({
+    title: 'Documentos - Admin',
+    description: 'Gestión de documentos y guías'
+  });
+  
+  res.render('admin/docs', { 
+    structure,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
 });
 
 // Crear nueva documentación POST
@@ -651,7 +732,17 @@ app.post('/api/admin/docs/quick-edit/:id', requireAuth, async (req, res) => {
 // Listar usuarios
 app.get('/admin/users', requireAuth, async (req, res) => {
   const users = await userDb.getAll();
-  res.render('admin/users', { users });
+  
+  const pageMetadata = generatePageMetadata({
+    title: 'Usuarios - Admin',
+    description: 'Gestión de usuarios del sistema'
+  });
+  
+  res.render('admin/users', { 
+    users,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
 });
 
 // Crear usuario

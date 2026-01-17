@@ -256,6 +256,15 @@ const categoryDb = {
         else resolve();
       });
     });
+  },
+
+  getBySlug: (slug) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM categories WHERE slug = ?', [slug], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
   }
 };
 
@@ -374,6 +383,20 @@ const subcategoryDb = {
       db.run('DELETE FROM subcategories WHERE id = ?', [id], (err) => {
         if (err) reject(err);
         else resolve();
+      });
+    });
+  },
+
+  getBySlug: (slug, categoryId) => {
+    return new Promise((resolve, reject) => {
+      const query = categoryId 
+        ? 'SELECT * FROM subcategories WHERE slug = ? AND category_id = ?'
+        : 'SELECT * FROM subcategories WHERE slug = ?';
+      const params = categoryId ? [slug, categoryId] : [slug];
+
+      db.get(query, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
       });
     });
   }

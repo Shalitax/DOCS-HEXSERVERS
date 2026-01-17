@@ -1,0 +1,75 @@
+<!-- Basic Meta Tags -->
+<meta charset="<%= metadata.charset %>">
+<meta name="viewport" content="<%= metadata.viewport %>">
+<meta name="description" content="<%= metadata.description %>">
+<meta name="keywords" content="<%= metadata.keywords %>">
+<meta name="author" content="<%= metadata.author %>">
+<meta name="robots" content="<%= metadata.robots %>">
+
+<!-- Canonical URL -->
+<link rel="canonical" href="<%= metadata.canonical %>">
+
+<!-- Favicon -->
+<link rel="icon" type="image/x-icon" href="<%= metadata.links.favicon %>">
+
+<!-- Open Graph Meta Tags -->
+<meta property="og:type" content="<%= metadata.og.type %>">
+<meta property="og:locale" content="<%= metadata.og.locale %>">
+<meta property="og:site_name" content="<%= metadata.og.siteName %>">
+<meta property="og:title" content="<%= metadata.og.title %>">
+<meta property="og:description" content="<%= metadata.og.description %>">
+<meta property="og:url" content="<%= metadata.og.url %>">
+<meta property="og:image" content="<%= metadata.og.image %>">
+<meta property="og:image:width" content="<%= metadata.og.imageWidth %>">
+<meta property="og:image:height" content="<%= metadata.og.imageHeight %>">
+
+<!-- Twitter Card Meta Tags -->
+<meta name="twitter:card" content="<%= metadata.twitter.card %>">
+<meta name="twitter:site" content="<%= metadata.twitter.site %>">
+<meta name="twitter:creator" content="<%= metadata.twitter.creator %>">
+<meta name="twitter:title" content="<%= metadata.twitter.title %>">
+<meta name="twitter:description" content="<%= metadata.twitter.description %>">
+<meta name="twitter:image" content="<%= metadata.twitter.image %>">
+
+<!-- Verification Tags (if provided) -->
+<% if (baseMetadata.verification.google) { %>
+<meta name="google-site-verification" content="<%= baseMetadata.verification.google %>">
+<% } %>
+<% if (baseMetadata.verification.bing) { %>
+<meta name="msvalidate.01" content="<%= baseMetadata.verification.bing %>">
+<% } %>
+<% if (baseMetadata.verification.yandex) { %>
+<meta name="yandex-verification" content="<%= baseMetadata.verification.yandex %>">
+<% } %>
+
+<!-- Structured Data (JSON-LD) -->
+<script type="application/ld+json">
+<%- JSON.stringify(metadata.structuredData) %>
+</script>
+
+<!-- Analytics (if enabled) -->
+<% if (baseMetadata.analytics.googleAnalyticsId) { %>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=<%= baseMetadata.analytics.googleAnalyticsId %>"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '<%= baseMetadata.analytics.googleAnalyticsId %>');
+</script>
+<% } %>
+
+<% if (baseMetadata.analytics.microsoftClarityId) { %>
+<!-- Microsoft Clarity -->
+<script type="text/javascript">
+  (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "<%= baseMetadata.analytics.microsoftClarityId %>");
+</script>
+<% } %>
+
+<!-- Social Links -->
+<link rel="me" href="<%= baseMetadata.social.github %>">
+<link rel="me" href="<%= baseMetadata.social.discord %>">
