@@ -345,7 +345,39 @@ app.get('/admin/docs', requireAuth, async (req, res) => {
   const categories = await categoryDb.getAll();
   const subcategories = await subcategoryDb.getAll();
   
-  res.render('admin/docs', { docs, categories, subcategories });
+  // Construir estructura de árbol con categorías, subcategorías y documentos
+  const structure = [];
+  
+  // Función recursiva para construir subcategorías anidadas
+  async function buildSubcategoryTree(parentId, categoryId) {
+    const subs = parentId 
+      ? subcategories.filter(s => s.parent_subcategory_id === parentId)
+      : subcategories.filter(s => s.category_id === categoryId && !s.parent_subcategory_id);
+    
+    const result = [];
+    
+    for (const sub of subs) {
+      const subDocs = docs.filter(d => d.subcategory_id === sub.id);
+      
+      result.push({
+        ...sub,
+        subcategories: await buildSubcategoryTree(sub.id, categoryId),
+        docs: subDocs
+      });
+    }
+    
+    return result;
+  }
+  
+  // Construir estructura completa
+  for (const category of categories) {
+    structure.push({
+      ...category,
+      subcategories: await buildSubcategoryTree(null, category.id)
+    });
+  }
+  
+  res.render('admin/docs', { structure });
 });
 
 // Crear nueva documentación GET
@@ -369,10 +401,28 @@ app.post('/admin/docs/new', requireAuth, async (req, res) => {
   
   try {
     await docDb.create(subcategory_id, title, slug, description, content, order_index || 0);
-    res.redirect('/admin/docs');
+    
+    // Si es una petición JSON, devolver JSON
+    if (req.headers['content-type'] === 'application/json') {
+      res.json({ success: true });
+    } else {
+      res.redirect('/admin/docs');
+    }
   } catch (error) {
     console.error('Error creating doc:', error);
-    res.status(500).send('Error al crear documentación');
+    
+    let errorMessage = 'Error al crear documentación';
+    
+    // Detectar error de slug duplicado
+    if (error.code === 'SQLITE_CONSTRAINT' && error.message.includes('UNIQUE constraint failed')) {
+      errorMessage = `Ya existe un documento con el slug "${slug}" en esta subcategoría. Por favor, usa un slug diferente.`;
+    }
+    
+    if (req.headers['content-type'] === 'application/json') {
+      res.status(400).json({ success: false, error: errorMessage });
+    } else {
+      res.status(400).send(errorMessage);
+    }
   }
 });
 
@@ -396,10 +446,28 @@ app.post('/admin/docs/edit/:id', requireAuth, async (req, res) => {
   
   try {
     await docDb.update(req.params.id, title, slug, description, content, order_index || 0);
-    res.redirect('/admin/docs');
+    
+    // Si es una petición JSON, devolver JSON
+    if (req.headers['content-type'] === 'application/json') {
+      res.json({ success: true });
+    } else {
+      res.redirect('/admin/docs');
+    }
   } catch (error) {
     console.error('Error updating doc:', error);
-    res.status(500).send('Error al actualizar documentación');
+    
+    let errorMessage = 'Error al actualizar documentación';
+    
+    // Detectar error de slug duplicado
+    if (error.code === 'SQLITE_CONSTRAINT' && error.message.includes('UNIQUE constraint failed')) {
+      errorMessage = `Ya existe otro documento con el slug "${slug}" en esta subcategoría. Por favor, usa un slug diferente.`;
+    }
+    
+    if (req.headers['content-type'] === 'application/json') {
+      res.status(400).json({ success: false, error: errorMessage });
+    } else {
+      res.status(400).send(errorMessage);
+    }
   }
 });
 
@@ -426,10 +494,20 @@ app.get('/api/admin/subcategories/all', requireAuth, async (req, res) => {
   }
 });
 
-// Obtener subcategorías de una categoría
+// Obtener subcategorías de una categoría (solo primer nivel)
 app.get('/api/admin/subcategories/:categoryId', requireAuth, async (req, res) => {
   try {
     const subcategories = await subcategoryDb.getByCategoryId(req.params.categoryId);
+    res.json(subcategories);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener subcategorías' });
+  }
+});
+
+// Obtener TODAS las subcategorías de una categoría (incluyendo anidadas) en formato plano
+app.get('/api/admin/subcategories/:categoryId/flat', requireAuth, async (req, res) => {
+  try {
+    const subcategories = await subcategoryDb.getAllByCategoryIdFlat(req.params.categoryId);
     res.json(subcategories);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener subcategorías' });

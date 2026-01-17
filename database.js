@@ -280,6 +280,44 @@ const subcategoryDb = {
     });
   },
 
+  // Obtener todas las subcategorías de una categoría (incluyendo anidadas) en formato plano
+  getAllByCategoryIdFlat: async (categoryId) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM subcategories WHERE category_id = ? ORDER BY order_index ASC, name ASC',
+        [categoryId],
+        (err, rows) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          
+          const subcategories = rows || [];
+          const result = [];
+          
+          // Función recursiva para construir la lista plana con indentación
+          function buildFlatList(parentId = null, level = 0) {
+            const children = subcategories.filter(s => 
+              parentId === null ? s.parent_subcategory_id === null : s.parent_subcategory_id === parentId
+            );
+            
+            children.forEach(sub => {
+              result.push({
+                ...sub,
+                level: level,
+                indentedName: '  '.repeat(level) + sub.display_name
+              });
+              buildFlatList(sub.id, level + 1);
+            });
+          }
+          
+          buildFlatList();
+          resolve(result);
+        }
+      );
+    });
+  },
+
   getByParentId: (parentId) => {
     return new Promise((resolve, reject) => {
       db.all(

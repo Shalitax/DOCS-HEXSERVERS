@@ -15,6 +15,10 @@ function showSubcategoryModal(categoryId, categoryName, parentSubcategoryId = nu
   document.getElementById('subcategoryModal').classList.remove('hidden');
 }
 
+function hideModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
+
 // Auto-generar slug
 document.getElementById('categoryName').addEventListener('input', (e) => {
   const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

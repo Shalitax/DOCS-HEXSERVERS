@@ -17,6 +17,9 @@
           Gestión de Documentación
         </h1>
         <div class="flex space-x-3">
+          <button onclick="showCategoryModal()" class="bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+            <i class="fas fa-plus mr-2"></i>Nueva Categoría
+          </button>
           <a href="/admin/docs/new" class="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all text-white font-semibold">
             <i class="fas fa-plus mr-2"></i>Nueva Documentación
           </a>
@@ -30,61 +33,63 @@
 
   <div class="container mx-auto px-6 py-8">
     
-    <div class="glass rounded-xl border border-white/20 overflow-hidden shadow-xl">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-white/5">
-            <tr>
-              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Título</th>
-              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Categoría</th>
-              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Subcategoría</th>
-              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Orden</th>
-              <th class="px-6 py-4 text-center text-sm font-semibold text-gray-300">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-white/5">
-            <% if (docs.length === 0) { %>
-              <tr>
-                <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                  No hay documentación disponible. <a href="/admin/docs/new" class="text-purple-400 hover:underline">Crea la primera</a>
-                </td>
-              </tr>
+    <div class="grid gap-6">
+      <% if (structure.length === 0) { %>
+        <div class="glass rounded-xl p-8 border border-white/20 text-center text-gray-400 shadow-xl">
+          No hay documentación disponible. <a href="/admin/docs/new" class="text-purple-400 hover:underline">Crea la primera</a>
+        </div>
+      <% } else { %>
+        <% structure.forEach(category => { %>
+          <div class="glass rounded-xl p-6 border border-white/20 shadow-xl">
+            <!-- Categoría -->
+            <div class="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
+              <div class="flex items-center space-x-3">
+                <% if (category.icon_type === 'png' && category.icon) { %>
+                  <img src="<%= category.icon %>" alt="<%= category.display_name %>" class="w-8 h-8">
+                <% } else { %>
+                  <i class="<%= category.icon.includes(' ') ? category.icon : 'fas ' + category.icon %> text-purple-400 text-2xl"></i>
+                <% } %>
+                <div>
+                  <h3 class="text-xl font-bold text-white"><%= category.display_name %></h3>
+                  <p class="text-sm text-gray-400">
+                    Slug: <%= category.slug %> | Orden: <%= category.order_index %>
+                    <% if (category.is_hidden) { %>
+                      <span class="ml-2 px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                        <i class="fas fa-eye-slash mr-1"></i>Oculto
+                      </span>
+                    <% } %>
+                  </p>
+                </div>
+              </div>
+              <div class="flex space-x-2">
+                <button onclick="showSubcategoryModal(<%= category.id %>, '<%= category.display_name.replace(/'/g, "\\'") %>')" class="glass px-3 py-2 rounded text-sm hover:bg-green-500/20 text-green-400 transition-all" title="Agregar subcategoría">
+                  <i class="fas fa-plus mr-1"></i>Subcategoría
+                </button>
+                <button onclick="editCategory(<%= category.id %>, '<%= category.name.replace(/'/g, "\\'") %>', '<%= category.display_name.replace(/'/g, "\\'") %>', '<%= category.slug %>', '<%= category.icon %>', <%= category.order_index %>, <%= category.is_hidden ? 1 : 0 %>)" class="glass px-3 py-2 rounded text-sm hover:bg-blue-500/20 text-blue-400 transition-all" title="Editar categoría">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteCategory(<%= category.id %>, '<%= category.display_name.replace(/'/g, "\\'") %>')" class="glass px-3 py-2 rounded text-sm hover:bg-red-500/20 text-red-400 transition-all" title="Eliminar categoría">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Subcategorías y documentos -->
+            <% if (category.subcategories && category.subcategories.length > 0) { %>
+              <div class="space-y-2">
+                <%- include('../partials/admin-doc-tree', { subcategories: category.subcategories }) %>
+              </div>
             <% } else { %>
-              <% docs.forEach(doc => { %>
-                <tr class="hover:bg-white/5 transition-colors">
-                  <td class="px-6 py-4">
-                    <div class="font-medium text-white"><%= doc.title %></div>
-                    <div class="text-sm text-gray-400"><%= doc.slug %></div>
-                  </td>
-                  <td class="px-6 py-4 text-gray-300">
-                    <i class="fas fa-folder mr-1 text-purple-400"></i>
-                    <%= doc.category_name %>
-                  </td>
-                  <td class="px-6 py-4 text-gray-300">
-                    <i class="fas fa-folder-open mr-1 text-blue-400"></i>
-                    <%= doc.subcategory_name %>
-                  </td>
-                  <td class="px-6 py-4 text-gray-300">
-                    <%= doc.order_index %>
-                  </td>
-                  <td class="px-6 py-4">
-                    <div class="flex justify-center space-x-2">
-                      <a href="/admin/docs/edit/<%= doc.id %>" class="glass px-3 py-2 rounded hover:bg-blue-500/20 text-blue-400 transition-all" title="Editar">
-                        <i class="fas fa-edit"></i>
-                      </a>
-                      <form method="POST" action="/admin/docs/delete/<%= doc.id %>" class="inline" onsubmit="event.preventDefault(); showConfirmModal('¿Eliminar <%= doc.title %>?', () => this.submit(), 'danger')">
-                        <button type="submit" class="glass px-3 py-2 rounded hover:bg-red-500/20 text-red-400 transition-all" title="Eliminar">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </form>
-                    </div>
-                  </td>
-                </tr>
-              <% }); %>
+              <div class="text-center py-4 text-gray-500 text-sm">
+                No hay subcategorías ni documentación. 
+                <button onclick="showSubcategoryModal(<%= category.id %>, '<%= category.display_name.replace(/'/g, "\\'") %>')" class="text-purple-400 hover:underline">
+                  Agregar subcategoría
+                </button>
+              </div>
             <% } %>
-          </tbody>
-        </table>
-      </div>
+          </div>
+        <% }); %>
+      <% } %>
     </div>
 
   </div>
@@ -121,7 +126,95 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal para Categoría -->
+  <div id="categoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
+      <h2 id="categoryModalTitle" class="text-2xl font-bold mb-6 font-display">Nueva Categoría</h2>
+      <form id="categoryForm" class="space-y-4">
+        <input type="hidden" id="categoryId">
+        <div>
+          <label class="block text-sm font-medium mb-2">Nombre</label>
+          <input type="text" id="categoryName" required class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Nombre para Mostrar</label>
+          <input type="text" id="categoryDisplayName" required class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Slug</label>
+          <input type="text" id="categorySlug" required class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Icono (Font Awesome)</label>
+          <input type="text" id="categoryIcon" value="fas fa-folder" class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Orden</label>
+          <input type="number" id="categoryOrder" value="0" class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="categoryHidden" class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500 focus:ring-2">
+          <label for="categoryHidden" class="ml-2 text-sm font-medium text-gray-300">Ocultar del sidebar (solo visible en búsquedas)</label>
+        </div>
+        <div class="flex space-x-3 mt-6">
+          <button type="submit" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+            Guardar
+          </button>
+          <button type="button" onclick="hideModal('categoryModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para Subcategoría -->
+  <div id="subcategoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
+      <h2 id="subcategoryModalTitle" class="text-2xl font-bold mb-6 font-display">Nueva Subcategoría</h2>
+      <form id="subcategoryForm" class="space-y-4">
+        <input type="hidden" id="subcategoryCategoryId">
+        <input type="hidden" id="subcategoryParentId">
+        <input type="hidden" id="subcategoryId">
+        <div>
+          <label class="block text-sm font-medium mb-2">Nombre</label>
+          <input type="text" id="subcategoryName" required class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Nombre para Mostrar</label>
+          <input type="text" id="subcategoryDisplayName" required class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Slug</label>
+          <input type="text" id="subcategorySlug" required class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Icono (Font Awesome)</label>
+          <input type="text" id="subcategoryIcon" value="fas fa-folder-open" class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Orden</label>
+          <input type="number" id="subcategoryOrder" value="0" class="w-full glass px-4 py-2 rounded-lg focus:ring-2 focus:ring-white text-white">
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="subcategoryHidden" class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500 focus:ring-2">
+          <label for="subcategoryHidden" class="ml-2 text-sm font-medium text-gray-300">Ocultar del sidebar (solo visible en búsquedas)</label>
+        </div>
+        <div class="flex space-x-3 mt-6">
+          <button type="submit" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all text-white font-semibold">
+            Guardar
+          </button>
+          <button type="button" onclick="hideModal('subcategoryModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/js/admin-utils.js"></script>
+  <script src="/js/admin-categories.js"></script>
 
 </body>
 </html>

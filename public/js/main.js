@@ -7,6 +7,10 @@ let searchTimeout;
 
 let confirmCallback = null;
 
+function hideModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
+
 function showConfirmModal(title, message, onConfirm, type = 'warning') {
   const modal = document.getElementById('confirmModal');
   const titleEl = document.getElementById('confirmTitle');
@@ -783,5 +787,82 @@ async function deleteDocument(id, title) {
     'danger'
   );
 }
+
+// ===== Sistema de Gestión de Documentación =====
+
+function showDocModal(subcategoryId) {
+  document.getElementById('docModalTitle').textContent = 'Nueva Documentación';
+  document.getElementById('docForm').reset();
+  document.getElementById('docId').value = '';
+  document.getElementById('docSubcategoryId').value = subcategoryId;
+  document.getElementById('docModal').classList.remove('hidden');
+}
+
+function editDocModal(id, title, slug, description, content, orderIndex) {
+  document.getElementById('docModalTitle').textContent = 'Editar Documentación';
+  document.getElementById('docId').value = id;
+  document.getElementById('docTitle').value = title;
+  document.getElementById('docSlug').value = slug;
+  document.getElementById('docDescription').value = description || '';
+  document.getElementById('docContent').value = content;
+  document.getElementById('docOrder').value = orderIndex;
+  document.getElementById('docModal').classList.remove('hidden');
+}
+
+// Auto-generar slug desde el título
+document.addEventListener('DOMContentLoaded', () => {
+  const docTitle = document.getElementById('docTitle');
+  if (docTitle) {
+    docTitle.addEventListener('input', (e) => {
+      const slug = e.target.value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      document.getElementById('docSlug').value = slug;
+    });
+  }
+
+  // Form de documentación
+  const docForm = document.getElementById('docForm');
+  if (docForm) {
+    docForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('docId').value;
+      const subcategoryId = document.getElementById('docSubcategoryId').value;
+      const data = {
+        title: document.getElementById('docTitle').value,
+        slug: document.getElementById('docSlug').value,
+        description: document.getElementById('docDescription').value,
+        content: document.getElementById('docContent').value,
+        order_index: parseInt(document.getElementById('docOrder').value),
+        subcategory_id: subcategoryId
+      };
+
+      try {
+        const url = id ? `/admin/docs/edit/${id}` : '/admin/docs/new';
+        const method = 'POST';
+        
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          showAlertModal('¡Guardado!', 'Documentación guardada exitosamente', 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showAlertModal('Error', result.error || 'No se pudo guardar la documentación', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlertModal('Error', 'No se pudo guardar la documentación', 'error');
+      }
+    });
+  }
+});
 
 console.log('🎉 HexServers Docs cargado correctamente');

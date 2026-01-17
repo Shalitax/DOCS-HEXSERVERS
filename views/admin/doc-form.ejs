@@ -194,14 +194,16 @@
       }
 
       try {
-        const response = await fetch(`/api/admin/subcategories/${categoryId}`);
+        // Usar la nueva ruta que incluye subcategorías anidadas
+        const response = await fetch(`/api/admin/subcategories/${categoryId}/flat`);
         const subcategories = await response.json();
         
         subcategorySelect.innerHTML = '<option value="">Selecciona una subcategoría</option>';
         subcategories.forEach(sub => {
           const option = document.createElement('option');
           option.value = sub.id;
-          option.textContent = sub.display_name;
+          // Usar indentedName que ya incluye la indentación
+          option.textContent = sub.indentedName;
           <% if (preselectedSubcategory) { %>
           if (sub.id == <%= preselectedSubcategory %>) {
             option.selected = true;
