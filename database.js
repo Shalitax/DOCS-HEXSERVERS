@@ -450,7 +450,12 @@ const docDb = {
   getBySubcategoryId: (subcategoryId) => {
     return new Promise((resolve, reject) => {
       db.all(
-        'SELECT * FROM documentation WHERE subcategory_id = ? ORDER BY order_index ASC, title ASC',
+        `SELECT d.*, s.slug as subcategory_slug, c.slug as category_slug
+         FROM documentation d
+         JOIN subcategories s ON d.subcategory_id = s.id
+         JOIN categories c ON s.category_id = c.id
+         WHERE d.subcategory_id = ? 
+         ORDER BY d.order_index ASC, d.title ASC`,
         [subcategoryId],
         (err, rows) => {
           if (err) reject(err);

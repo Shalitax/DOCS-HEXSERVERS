@@ -868,29 +868,50 @@ async function editDocModal(docId) {
     document.getElementById('docContent').value = doc.content;
     document.getElementById('docOrder').value = doc.order_index;
     
-    // Cargar categorías
+    // Cargar todas las categorías primero
     await loadCategoriesForDoc();
     
-    try {
-      const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
-      let subcategory = await subResponse.json();
-      
-      // Si es un array, tomar el primer elemento
-      if (Array.isArray(subcategory)) {
-        subcategory = subcategory[0];
+    // Determinar la categoría del documento
+    let categoryId = null;
+    
+    if (doc.subcategory && doc.subcategory.category_id) {
+      categoryId = doc.subcategory.category_id;
+    } else if (doc.subcategory_id) {
+      // Fallback: obtener subcategoría manualmente
+      try {
+        const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
+        if (subResponse.ok) {
+          let subcategory = await subResponse.json();
+          if (Array.isArray(subcategory)) {
+            subcategory = subcategory[0];
+          }
+          if (subcategory && subcategory.category_id) {
+            categoryId = subcategory.category_id;
+          }
+        }
+      } catch (error) {
+        console.error('Error loading subcategory:', error);
       }
-      
-      if (subcategory) {
-        // Seleccionar la categoría
-        const categorySelect = document.getElementById('docCategory');
-        categorySelect.value = String(subcategory.category_id);
-        
-        // Cargar subcategorías
-        await loadSubcategoriesForDoc(subcategory.category_id, doc.subcategory_id);
-      }
-    } catch (error) {
-      console.error('Error loading subcategory:', error);
     }
+    
+    if (!categoryId) {
+      alert('Error: No se pudo determinar la categoría del documento.');
+      return;
+    }
+    
+    // Seleccionar la categoría (con pequeño delay para asegurar que el DOM esté listo)
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const categorySelect = document.getElementById('docCategory');
+    
+    // Intentar seleccionar con diferentes conversiones
+    categorySelect.value = String(categoryId);
+    if (!categorySelect.value) {
+      categorySelect.value = categoryId;
+    }
+    
+    // Cargar y seleccionar subcategoría
+    await loadSubcategoriesForDoc(categoryId, doc.subcategory_id);
     
     document.getElementById('docModal').classList.remove('hidden');
   } catch (error) {

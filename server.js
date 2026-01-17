@@ -56,60 +56,67 @@ app.use(session({
 // Middleware para pasar información del usuario a las vistas
 app.use(passUser);
 
+// ===== FUNCIONES AUXILIARES =====
+
+// Función auxiliar para construir árbol de subcategorías (reutilizable)
+async function buildSubcategoryTree(subcategories, parentId, categoryId, includeHidden = false, includeDocs = false) {
+  const subs = parentId 
+    ? subcategories.filter(s => s.parent_subcategory_id === parentId)
+    : subcategories.filter(s => s.category_id === categoryId && !s.parent_subcategory_id);
+  
+  const result = [];
+  
+  for (const sub of subs) {
+    // Saltar subcategorías ocultas si no se requieren
+    if (!includeHidden && sub.is_hidden) continue;
+    
+    const subcategoryData = {
+      id: sub.id,
+      name: sub.name,
+      display_name: sub.display_name,
+      slug: sub.slug,
+      icon: sub.icon,
+      icon_type: sub.icon_type || 'fontawesome',
+      order_index: sub.order_index,
+      is_hidden: sub.is_hidden,
+      parent_subcategory_id: sub.parent_subcategory_id,
+      category_id: sub.category_id,
+      subcategories: []
+    };
+    
+    // Recursivamente obtener sub-subcategorías
+    subcategoryData.subcategories = await buildSubcategoryTree(
+      subcategories, 
+      sub.id, 
+      categoryId, 
+      includeHidden, 
+      includeDocs
+    );
+    
+    // Incluir documentos si se solicita
+    if (includeDocs) {
+      const docs = await docDb.getBySubcategoryId(sub.id);
+      subcategoryData.guides = docs.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        slug: doc.slug,
+        description: doc.description,
+        path: includeDocs === 'full' ? `${doc.category_slug}/${sub.slug}/${doc.slug}` : undefined
+      }));
+    }
+    
+    result.push(subcategoryData);
+  }
+  
+  return result;
+}
+
 // Cargar estructura de documentación desde la base de datos
 async function loadDocsStructure() {
   try {
     const categories = await categoryDb.getAll();
+    const subcategories = await subcategoryDb.getAll();
     const structure = [];
-
-    // Función recursiva para construir subcategorías anidadas
-    async function buildSubcategoryTree(parentId, categoryId, categorySlug) {
-      const subcategories = parentId 
-        ? await subcategoryDb.getByParentId(parentId)
-        : await subcategoryDb.getByCategoryId(categoryId);
-      
-      const result = [];
-      
-      for (const subcategory of subcategories) {
-        // Saltar subcategorías ocultas
-        if (subcategory.is_hidden) continue;
-        
-        const subcategoryData = {
-          id: subcategory.id,
-          name: subcategory.name,
-          displayName: subcategory.display_name,
-          slug: subcategory.slug,
-          icon: subcategory.icon,
-          icon_type: subcategory.icon_type || 'fontawesome',
-          order_index: subcategory.order_index,
-          is_hidden: subcategory.is_hidden,
-          parent_subcategory_id: subcategory.parent_subcategory_id,
-          subcategories: [],
-          guides: []
-        };
-
-        // Obtener sub-subcategorías recursivamente
-        subcategoryData.subcategories = await buildSubcategoryTree(subcategory.id, categoryId, categorySlug);
-
-        // Obtener documentos de esta subcategoría
-        const docs = await docDb.getBySubcategoryId(subcategory.id);
-        
-        for (const doc of docs) {
-          // Construir path completo recursivamente
-          subcategoryData.guides.push({
-            id: doc.id,
-            title: doc.title,
-            slug: doc.slug,
-            description: doc.description,
-            path: `${categorySlug}/${subcategory.slug}/${doc.slug}`
-          });
-        }
-
-        result.push(subcategoryData);
-      }
-      
-      return result;
-    }
 
     for (const category of categories) {
       // Saltar categorías ocultas
@@ -118,7 +125,7 @@ async function loadDocsStructure() {
       const categoryData = {
         id: category.id,
         name: category.name,
-        displayName: category.display_name,
+        display_name: category.display_name,
         slug: category.slug,
         icon: category.icon,
         icon_type: category.icon_type || 'fontawesome',
@@ -127,8 +134,14 @@ async function loadDocsStructure() {
         subcategories: []
       };
 
-      // Obtener subcategorías de nivel raíz (sin parent)
-      categoryData.subcategories = await buildSubcategoryTree(null, category.id, category.slug);
+      // Obtener subcategorías con documentos
+      categoryData.subcategories = await buildSubcategoryTree(
+        subcategories,
+        null,
+        category.id,
+        false,
+        'full'
+      );
 
       structure.push(categoryData);
     }
@@ -419,36 +432,27 @@ app.get('/admin/docs', requireAuth, async (req, res) => {
   const categories = await categoryDb.getAll();
   const subcategories = await subcategoryDb.getAll();
   
-  // Construir estructura de árbol con categorías, subcategorías y documentos
+  // Construir estructura usando la función reutilizable
   const structure = [];
   
-  // Función recursiva para construir subcategorías anidadas
-  async function buildSubcategoryTree(parentId, categoryId) {
-    const subs = parentId 
-      ? subcategories.filter(s => s.parent_subcategory_id === parentId)
-      : subcategories.filter(s => s.category_id === categoryId && !s.parent_subcategory_id);
-    
-    const result = [];
-    
-    for (const sub of subs) {
-      const subDocs = docs.filter(d => d.subcategory_id === sub.id);
-      
-      result.push({
-        ...sub,
-        subcategories: await buildSubcategoryTree(sub.id, categoryId),
-        docs: subDocs
-      });
-    }
-    
-    return result;
-  }
-  
-  // Construir estructura completa
   for (const category of categories) {
-    structure.push({
+    const categoryData = {
       ...category,
-      subcategories: await buildSubcategoryTree(null, category.id)
-    });
+      subcategories: await buildSubcategoryTree(subcategories, null, category.id, true, false)
+    };
+    
+    // Agregar documentos a cada subcategoría
+    const addDocsToSubcategories = (subs) => {
+      for (const sub of subs) {
+        sub.docs = docs.filter(d => d.subcategory_id === sub.id);
+        if (sub.subcategories && sub.subcategories.length > 0) {
+          addDocsToSubcategories(sub.subcategories);
+        }
+      }
+    };
+    
+    addDocsToSubcategories(categoryData.subcategories);
+    structure.push(categoryData);
   }
   
   const pageMetadata = generatePageMetadata({
@@ -689,6 +693,21 @@ app.get('/api/admin/docs/:id', requireAuth, async (req, res) => {
     if (!doc) {
       return res.status(404).json({ error: 'Documento no encontrado' });
     }
+    
+    // Obtener información de subcategoría y categoría
+    if (doc.subcategory_id) {
+      const subcategory = await subcategoryDb.getById(doc.subcategory_id);
+      if (subcategory) {
+        doc.subcategory = subcategory;
+        if (subcategory.category_id) {
+          const category = await categoryDb.getById(subcategory.category_id);
+          if (category) {
+            doc.category = category;
+          }
+        }
+      }
+    }
+    
     res.json(doc);
   } catch (error) {
     console.error('Error getting doc:', error);

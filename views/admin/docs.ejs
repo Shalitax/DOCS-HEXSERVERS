@@ -320,39 +320,49 @@
         document.getElementById('docContent').value = doc.content;
         document.getElementById('docOrder').value = doc.order_index;
         
-        // Cargar categorías
+        // Cargar todas las categorías primero
         await loadCategoriesForDoc();
         
-        // Obtener la categoría de la subcategoría
-        const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
+        // Determinar la categoría del documento
+        let categoryId = null;
         
-        if (!subResponse.ok) {
-          throw new Error('No se pudo obtener la información de la subcategoría');
+        if (doc.subcategory && doc.subcategory.category_id) {
+          categoryId = doc.subcategory.category_id;
+        } else if (doc.subcategory_id) {
+          // Fallback: obtener subcategoría manualmente
+          const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
+          if (subResponse.ok) {
+            const subcategory = await subResponse.json();
+            if (subcategory && subcategory.category_id) {
+              categoryId = subcategory.category_id;
+            }
+          }
         }
         
-        let subcategory = await subResponse.json();
-        
-        // Si es un array, tomar el primer elemento
-        if (Array.isArray(subcategory)) {
-          subcategory = subcategory[0];
+        if (!categoryId) {
+          alert('Error: No se pudo determinar la categoría del documento.');
+          return;
         }
         
-        // Verificar que la subcategoría existe y tiene category_id
-        if (!subcategory || !subcategory.category_id) {
-          throw new Error('La subcategoría asociada no existe o está corrupta');
-        }
+        // Seleccionar la categoría (con pequeño delay para asegurar que el DOM esté listo)
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Seleccionar la categoría
         const categorySelect = document.getElementById('docCategory');
-        categorySelect.value = String(subcategory.category_id);
         
-        // Cargar subcategorías
-        await loadSubcategoriesForDoc(subcategory.category_id, doc.subcategory_id);
+        // Intentar seleccionar con diferentes conversiones
+        categorySelect.value = String(categoryId);
+        if (!categorySelect.value) {
+          categorySelect.value = categoryId;
+        }
         
+        // Cargar y seleccionar subcategoría
+        await loadSubcategoriesForDoc(categoryId, doc.subcategory_id);
+        
+        // Mostrar el modal
         document.getElementById('docModal').classList.remove('hidden');
       } catch (error) {
         console.error('Error al cargar documento:', error);
-        alert('Error al cargar el documento');
+        alert('Error al cargar el documento: ' + error.message);
       }
     }
 
