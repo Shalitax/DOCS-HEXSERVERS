@@ -9,7 +9,7 @@ const bodyParser = require('body-parser');
 
 const { initDatabase, createDefaultAdmin, userDb, categoryDb, subcategoryDb, docDb } = require('./database');
 const { requireAuth, requireGuest, passUser } = require('./middleware/auth');
-const { generatePageMetadata, generateBreadcrumb, getBaseMetadata } = require('./metadata');
+const { generatePageMetadata, getBaseMetadata } = require('./metadata');
 
 const app = express();
 const md = new MarkdownIt({
@@ -222,20 +222,10 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
       });
     }
 
-    // Obtener información de categoría y subcategoría para breadcrumb
-    const categoryData = await categoryDb.getBySlug(category);
-    const subcategoryData = await subcategoryDb.getBySlug(subcategory, categoryData?.id);
-
     // Generar metadata para la página del documento
-    const breadcrumb = generateBreadcrumb(doc, subcategoryData, categoryData);
     const pageMetadata = generatePageMetadata({
       title: doc.title,
-      description: doc.content.substring(0, 160), // Primeros 160 caracteres como descripción
-      type: 'article',
-      slug: `docs/${category}/${subcategory}/${guide}`,
-      datePublished: doc.created_at,
-      dateModified: doc.updated_at,
-      breadcrumb
+      description: doc.content.substring(0, 160) // Primeros 160 caracteres como descripción
     });
 
     const htmlContent = md.render(doc.content);
