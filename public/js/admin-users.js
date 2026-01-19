@@ -8,6 +8,10 @@ function showUserModal() {
   document.getElementById('userModal').classList.remove('hidden');
 }
 
+function hideModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
+
 // Form de usuario
 document.getElementById('userForm').addEventListener('submit', async (e) => {
   e.preventDefault();
