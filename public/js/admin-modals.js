@@ -124,6 +124,16 @@ function hideConfirmModal() {
  * @param {string} type - Tipo: 'success', 'error', 'info'
  */
 function showAlertModal(title, message, type = 'success') {
+  // Títulos por defecto en español
+  const defaultTitles = {
+    'success': '¡Guardado!',
+    'error': 'Error',
+    'info': 'Información'
+  };
+  
+  // Usar título por defecto si no se proporciona o es genérico
+  const finalTitle = title || defaultTitles[type] || 'Aviso';
+  
   const modal = document.getElementById('alertModal');
   
   // Si existe el modal en el DOM (main.js)
@@ -133,7 +143,7 @@ function showAlertModal(title, message, type = 'success') {
     const iconEl = document.getElementById('alertIcon');
     const icon = iconEl.querySelector('i');
     
-    if (titleEl) titleEl.textContent = title;
+    if (titleEl) titleEl.textContent = finalTitle;
     if (messageEl) messageEl.textContent = message;
     
     // Configurar icono y colores según el tipo
@@ -165,6 +175,7 @@ function showAlertModal(title, message, type = 'success') {
             'fa-info-circle text-blue-400'
           } text-2xl"></i>
         </div>
+        <h3 class="text-xl font-bold mb-3 text-center">${finalTitle}</h3>
         <p class="text-lg text-gray-200 mb-6 text-center">${message}</p>
         <button onclick="this.closest('#tempAlertModal').remove()" class="w-full bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
           Cerrar
