@@ -192,6 +192,22 @@ async function buildSubcategoryTree(subcategories, parentId, categoryId, include
 }
 
 // Cargar estructura de documentación desde la base de datos
+// Función auxiliar para contar documentos recursivamente
+function countDocumentsRecursive(subcategories) {
+  let count = 0;
+  for (const sub of subcategories) {
+    // Contar documentos de esta subcategoría
+    if (sub.guides) {
+      count += sub.guides.length;
+    }
+    // Contar documentos de sub-subcategorías recursivamente
+    if (sub.subcategories && sub.subcategories.length > 0) {
+      count += countDocumentsRecursive(sub.subcategories);
+    }
+  }
+  return count;
+}
+
 async function loadDocsStructure() {
   try {
     const categories = await categoryDb.getAll();
@@ -222,6 +238,9 @@ async function loadDocsStructure() {
         false,
         'full'
       );
+
+      // Contar total de documentos en esta categoría
+      categoryData.totalDocs = countDocumentsRecursive(categoryData.subcategories);
 
       structure.push(categoryData);
     }

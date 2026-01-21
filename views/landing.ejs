@@ -59,7 +59,7 @@
                         </h3>
                       </div>
                       <p class="text-gray-400 text-sm mb-4">
-                        <%= category.subcategories.length %> <%= category.subcategories.length === 1 ? 'guía' : 'guías' %> disponible<%= category.subcategories.length === 1 ? '' : 's' %>
+                        <%= category.totalDocs || 0 %> <%= (category.totalDocs || 0) === 1 ? 'documento' : 'documentos' %> disponible<%= (category.totalDocs || 0) === 1 ? '' : 's' %>
                       </p>
                       <div class="flex items-center text-purple-400 text-sm font-medium group-hover:text-purple-300">
                         Ver guías
