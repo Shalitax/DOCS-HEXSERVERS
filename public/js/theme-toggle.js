@@ -47,14 +47,20 @@
   }
 
   // Función para configurar el botón con reintentos
-  function setupToggleButton() {
+  function setupToggleButton(attempts = 0) {
     const toggleButton = document.getElementById('theme-toggle');
+    console.log('Setup attempt', attempts, 'Button found:', !!toggleButton);
+    
     if (toggleButton) {
+      // Remover listener anterior si existe
+      toggleButton.removeEventListener('click', toggleTheme);
       toggleButton.addEventListener('click', toggleTheme);
-      console.log('Theme toggle button configured');
+      console.log('Theme toggle button configured successfully');
+    } else if (attempts < 20) {
+      // Reintentar hasta 20 veces (2 segundos total)
+      setTimeout(() => setupToggleButton(attempts + 1), 100);
     } else {
-      // Reintentar después de 100ms si el botón no existe aún
-      setTimeout(setupToggleButton, 100);
+      console.error('Theme toggle button not found after 20 attempts');
     }
   }
 
