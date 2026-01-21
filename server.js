@@ -13,6 +13,35 @@ const { initDatabase, createDefaultAdmin, userDb, categoryDb, subcategoryDb, doc
 const { requireAuth, requireGuest, passUser } = require('./middleware/auth');
 const { generatePageMetadata, getBaseMetadata } = require('./metadata');
 
+// Configurar rate limiting para rutas sensibles
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // 5 intentos por ventana
+  message: 'Demasiados intentos de inicio de sesión, intenta de nuevo más tarde',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const pageMetadata = generatePageMetadata({
+      title: 'Login - Admin',
+      description: 'Panel de administración de HexServers Docs',
+      robots: 'noindex, nofollow'
+    });
+    res.status(429).render('admin/login', { 
+      error: 'Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo en 15 minutos.',
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
+    });
+  }
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 100, // 100 requests por minuto
+  message: 'Demasiadas peticiones, intenta de nuevo más tarde',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const app = express();
 const md = new MarkdownIt({
   html: true,
@@ -325,7 +354,7 @@ app.get('/docs/:category', async (req, res) => {
       baseMetadata: getBaseMetadata()
     });
   } catch (error) {
-    console.error('Error loading category:', error);
+    logError('Load Category', error);
     const pageMetadata = generatePageMetadata({
       title: 'Error',
       description: 'Hubo un error al cargar la categoría'
@@ -407,7 +436,7 @@ app.get('/docs/:category/:subcategory', async (req, res) => {
       baseMetadata: getBaseMetadata()
     });
   } catch (error) {
-    console.error('Error loading subcategory:', error);
+    logError('Load Subcategory', error);
     const pageMetadata = generatePageMetadata({
       title: 'Error',
       description: 'Hubo un error al cargar la subcategoría'
@@ -466,7 +495,7 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
       baseMetadata: getBaseMetadata()
     });
   } catch (error) {
-    console.error('Error loading guide:', error);
+    logError('Load Guide', error);
     const pageMetadata = generatePageMetadata({
       title: 'Error',
       description: 'Hubo un error al cargar la página'
@@ -483,8 +512,8 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
   }
 });
 
-// API de búsqueda
-app.get('/api/search', async (req, res) => {
+// API de búsqueda con rate limiting
+app.get('/api/search', apiLimiter, async (req, res) => {
   const query = req.query.q?.toLowerCase();
   
   if (!query) {
@@ -540,7 +569,7 @@ app.get('/api/search', async (req, res) => {
 
     res.json(formatted);
   } catch (error) {
-    console.error('Search error:', error);
+    logError('Search API', error);
     res.status(500).json([]);
   }
 });
@@ -562,28 +591,7 @@ app.get('/admin/login', requireGuest, (req, res) => {
   });
 });
 
-// Rate limiter para login (máximo 5 intentos cada 15 minutos)
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // máximo 5 intentos
-  message: 'Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo en 15 minutos.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    const pageMetadata = generatePageMetadata({
-      title: 'Login - Admin',
-      description: 'Panel de administración de HexServers Docs',
-      robots: 'noindex, nofollow'
-    });
-    res.status(429).render('admin/login', { 
-      error: 'Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo en 15 minutos.',
-      metadata: pageMetadata,
-      baseMetadata: getBaseMetadata()
-    });
-  }
-});
-
-// Login POST
+// Login POST con rate limiting
 app.post('/admin/login', loginLimiter, requireGuest, async (req, res) => {
   const { username, password } = req.body;
 
@@ -798,7 +806,7 @@ app.post('/admin/docs/delete/:id', requireAuth, async (req, res) => {
     await docDb.delete(req.params.id);
     res.redirect('/admin/docs');
   } catch (error) {
-    console.error('Error deleting doc:', error);
+    logError('Delete Document', error);
     res.status(500).send('Error al eliminar documentación');
   }
 });
@@ -925,7 +933,7 @@ app.post('/api/admin/subcategories', requireAuth, async (req, res) => {
     );
     res.json({ success: true, id });
   } catch (error) {
-    console.error('Error creating subcategory:', error);
+    logError('Create Subcategory', error);
     res.status(500).json({ error: 'Error al crear subcategoría' });
   }
 });
@@ -980,7 +988,7 @@ app.get('/api/admin/docs/content/:id', requireAuth, async (req, res) => {
     }
     res.json({ content: doc.content });
   } catch (error) {
-    console.error('Error getting doc content:', error);
+    logError('Get Doc Content', error);
     res.status(500).json({ error: 'Error al obtener el contenido' });
   }
 });
@@ -1009,7 +1017,7 @@ app.get('/api/admin/docs/:id', requireAuth, async (req, res) => {
     
     res.json(doc);
   } catch (error) {
-    console.error('Error getting doc:', error);
+    logError('Get Document', error);
     res.status(500).json({ error: 'Error al obtener el documento' });
   }
 });
@@ -1023,7 +1031,7 @@ app.get('/api/admin/subcategories/:id', requireAuth, async (req, res) => {
     }
     res.json(subcategory);
   } catch (error) {
-    console.error('Error getting subcategory:', error);
+    logError('Get Subcategory', error);
     res.status(500).json({ error: 'Error al obtener la subcategoría' });
   }
 });
@@ -1040,7 +1048,7 @@ app.post('/api/admin/docs/quick-edit/:id', requireAuth, async (req, res) => {
     await docDb.update(req.params.id, doc.title, doc.slug, doc.description, content, doc.order_index);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating doc:', error);
+    logError('Quick Edit Document', error);
     res.status(500).json({ error: 'Error al actualizar documentación' });
   }
 });
@@ -1106,7 +1114,7 @@ app.put('/api/admin/users/:id', requireAuth, async (req, res) => {
     await userDb.update(req.params.id, username, email, password || null);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error updating user:', error);
+    logError('Update User', error);
     res.status(500).json({ error: 'Error al actualizar usuario' });
   }
 });
@@ -1123,7 +1131,7 @@ app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
     await userDb.delete(req.params.id);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    logError('Delete User', error);
     res.status(500).json({ error: 'Error al eliminar usuario' });
   }
 });
@@ -1155,7 +1163,7 @@ app.post('/api/admin/landing', requireAuth, async (req, res) => {
     await settingsDb.set('landing_page_content', content);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error saving landing page:', error);
+    logError('Save Landing Page', error);
     res.status(500).json({ error: 'Error al guardar la landing page' });
   }
 });
@@ -1183,7 +1191,7 @@ app.get('/admin/settings', requireAuth, async (req, res) => {
       baseMetadata: getBaseMetadata()
     });
   } catch (error) {
-    console.error('Error loading settings:', error);
+    logError('Load Settings', error);
     res.status(500).send('Error al cargar configuración');
   }
 });
@@ -1198,7 +1206,7 @@ app.post('/api/admin/settings/logo', requireAuth, async (req, res) => {
     await settingsDb.set('logo_url', logo_url || '');
     res.json({ success: true });
   } catch (error) {
-    console.error('Error saving logo settings:', error);
+    logError('Save Logo Settings', error);
     res.status(500).json({ error: 'Error al guardar configuración del logo' });
   }
 });
@@ -1216,7 +1224,7 @@ app.get('/api/admin/backup/download', requireAuth, (req, res) => {
       res.status(404).json({ error: 'Base de datos no encontrada' });
     }
   } catch (error) {
-    console.error('Error downloading backup:', error);
+    logError('Download Backup', error);
     res.status(500).json({ error: 'Error al descargar respaldo' });
   }
 });

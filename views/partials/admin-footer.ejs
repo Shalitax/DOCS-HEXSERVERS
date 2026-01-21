@@ -1,3 +1,5 @@
+  <!-- Admin Scripts -->
+  <script src="/js/admin-modals.js"></script>
   <% if (typeof adminScript === 'undefined' || adminScript !== '') { %>
     <script src="<%= typeof adminScript !== 'undefined' && adminScript !== '' ? adminScript : '/js/admin-utils.js' %>"></script>
   <% } %>

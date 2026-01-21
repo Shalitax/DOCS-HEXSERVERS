@@ -3,93 +3,6 @@ const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
 let searchTimeout;
 
-// ===== Sistema de Modales de Confirmación y Alerta =====
-
-let confirmCallback = null;
-
-function hideModal(modalId) {
-  document.getElementById(modalId).classList.add('hidden');
-}
-
-function showConfirmModal(title, message, onConfirm, type = 'warning') {
-  const modal = document.getElementById('confirmModal');
-  const titleEl = document.getElementById('confirmTitle');
-  const messageEl = document.getElementById('confirmMessage');
-  const iconEl = document.getElementById('confirmIcon');
-  const icon = iconEl.querySelector('i');
-  const confirmBtn = document.getElementById('confirmButton');
-  
-  titleEl.textContent = title;
-  messageEl.textContent = message;
-  
-  // Configurar icono y colores según el tipo
-  if (type === 'danger') {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
-    icon.className = 'fas fa-exclamation-triangle text-2xl text-red-400';
-    confirmBtn.className = 'flex-1 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-white font-semibold';
-  } else if (type === 'info') {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
-    icon.className = 'fas fa-info-circle text-2xl text-green-400';
-    confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
-  } else {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-yellow-500/20';
-    icon.className = 'fas fa-exclamation-circle text-2xl text-yellow-400';
-    confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
-  }
-  
-  confirmCallback = onConfirm;
-  modal.classList.remove('hidden');
-}
-
-function hideConfirmModal() {
-  const modal = document.getElementById('confirmModal');
-  modal.classList.add('hidden');
-  confirmCallback = null;
-}
-
-// Ejecutar callback al confirmar
-document.addEventListener('DOMContentLoaded', () => {
-  const confirmBtn = document.getElementById('confirmButton');
-  if (confirmBtn) {
-    confirmBtn.onclick = () => {
-      if (confirmCallback) {
-        confirmCallback();
-      }
-      hideConfirmModal();
-    };
-  }
-});
-
-function showAlertModal(title, message, type = 'success') {
-  const modal = document.getElementById('alertModal');
-  const titleEl = document.getElementById('alertTitle');
-  const messageEl = document.getElementById('alertMessage');
-  const iconEl = document.getElementById('alertIcon');
-  const icon = iconEl.querySelector('i');
-  
-  titleEl.textContent = title;
-  messageEl.textContent = message;
-  
-  // Configurar icono y colores según el tipo
-  if (type === 'success') {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
-    icon.className = 'fas fa-check-circle text-2xl text-green-400';
-  } else if (type === 'error') {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
-    icon.className = 'fas fa-times-circle text-2xl text-red-400';
-  } else if (type === 'info') {
-    iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-blue-500/20';
-    icon.className = 'fas fa-info-circle text-2xl text-blue-400';
-  }
-  
-  modal.classList.remove('hidden');
-}
-
-function hideAlertModal() {
-  const modal = document.getElementById('alertModal');
-  modal.classList.add('hidden');
-}
-
 // ===== Sistema de Acordeón para Categorías y Subcategorías =====
 
 // Mini buscador del sidebar
@@ -492,10 +405,6 @@ function cancelEdit() {
 }
 
 // ===== Gestión de Categorías y Subcategorías =====
-
-function hideModal(modalId) {
-  document.getElementById(modalId).classList.add('hidden');
-}
 
 function showCategoryModal(id = null, name = '', displayName = '', slug = '', icon = 'fa-folder', order = 0, isHidden = false, iconType = 'fontawesome') {
   const modal = document.getElementById('categoryModal');

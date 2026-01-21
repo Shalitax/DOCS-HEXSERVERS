@@ -1,6 +1,130 @@
 // Utilidades compartidas para el panel de administración
 
-// Mostrar modal de confirmación
+// ===== FUNCIONES DE GESTIÓN DE USUARIOS =====
+
+/**
+ * Mostrar modal para crear nuevo usuario
+ */
+function showUserModal() {
+  document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+  document.getElementById('userForm').reset();
+  document.getElementById('userId').value = '';
+  const passwordField = document.getElementById('password');
+  const passwordLabel = document.getElementById('passwordLabel');
+  if (passwordField) passwordField.required = true;
+  if (passwordLabel) passwordLabel.textContent = '(requerida)';
+  document.getElementById('userModal').classList.remove('hidden');
+}
+
+/**
+ * Editar usuario existente
+ * @param {number} id - ID del usuario
+ * @param {string} username - Nombre de usuario
+ * @param {string} email - Email del usuario
+ */
+function editUser(id, username, email) {
+  document.getElementById('userModalTitle').textContent = 'Editar Usuario';
+  document.getElementById('userId').value = id;
+  document.getElementById('username').value = username;
+  document.getElementById('email').value = email;
+  document.getElementById('password').value = '';
+  const passwordField = document.getElementById('password');
+  const passwordLabel = document.getElementById('passwordLabel');
+  if (passwordField) passwordField.required = false;
+  if (passwordLabel) passwordLabel.textContent = '(dejar vacío para no cambiar)';
+  document.getElementById('userModal').classList.remove('hidden');
+}
+
+/**
+ * Eliminar usuario con confirmación
+ * @param {number} id - ID del usuario
+ * @param {string} username - Nombre de usuario
+ */
+async function deleteUser(id, username) {
+  showConfirmModal(
+    '¿Eliminar usuario?',
+    `Se eliminará el usuario "${username}". Esta acción no se puede deshacer.`,
+    async () => {
+      try {
+        const response = await fetch(`/api/admin/users/${id}`, {
+          method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showAlertModal('¡Eliminado!', 'Usuario eliminado exitosamente', 'success');
+        } else {
+          showAlertModal('Error', result.error || 'Error al eliminar el usuario', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlertModal('Error', 'Error al eliminar el usuario', 'error');
+      }
+    },
+    'danger'
+  );
+}
+
+// ===== INICIALIZACIÓN DE FORMULARIOS =====
+
+// Inicializar formulario de usuarios cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  const userForm = document.getElementById('userForm');
+  if (userForm) {
+    userForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const id = document.getElementById('userId').value;
+      const data = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      };
+
+      // Si es edición y no hay contraseña, no enviarla
+      if (id && !data.password) {
+        delete data.password;
+      }
+
+      try {
+        const url = id ? `/api/admin/users/${id}` : '/api/admin/users';
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showAlertModal('¡Guardado!', 'Usuario guardado exitosamente', 'success');
+        } else {
+          showAlertModal('Error', result.error || 'Error al guardar el usuario', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlertModal('Error', 'Error al guardar el usuario', 'error');
+      }
+    });
+  }
+  
+  // Cerrar modal de usuario al hacer clic fuera
+  const userModal = document.getElementById('userModal');
+  if (userModal) {
+    userModal.addEventListener('click', (e) => {
+      if (e.target.id === 'userModal') {
+        userModal.classList.add('hidden');
+      }
+    });
+  }
+});
+
+// ===== FUNCIONES HEREDADAS (DEPRECADAS - Usar admin-modals.js) =====
+
+// Mostrar modal de confirmación (usar showConfirmModal de admin-modals.js)
 function showConfirmModal(message, onConfirm, type = 'danger') {
   const modal = document.createElement('div');
   modal.id = 'tempConfirmModal';
@@ -50,7 +174,7 @@ function showConfirmModal(message, onConfirm, type = 'danger') {
   };
 }
 
-// Mostrar modal de alerta
+// Mostrar modal de alerta (usar showAlertModal de admin-modals.js)
 function showAlertModal(message, type = 'success') {
   const modal = document.createElement('div');
   modal.id = 'tempAlertModal';
@@ -89,3 +213,4 @@ function showAlertModal(message, type = 'success') {
     }, 1500);
   }
 }
+
