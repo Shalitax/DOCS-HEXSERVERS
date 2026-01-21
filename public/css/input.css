@@ -342,15 +342,17 @@
   font-weight: 600;
   color: white;
   margin-top: 1.25rem;
+#preview h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+  margin-top: 1.25rem;
   margin-bottom: 0.5rem;
   transition: color 0.3s ease;
 }
 
 .light-mode #preview h3 {
   color: #111827;
-}
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
 }
 
 #preview p {
