@@ -459,27 +459,6 @@
   color: #6b7280 !important;
 }
 
-.light-mode .bg-black,
-.light-mode .bg-black\\/70 {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-}
-
-.light-mode .border-white\\/10 {
-  border-color: rgba(0, 0, 0, 0.1) !important;
-}
-
-.light-mode .border-white\\/20 {
-  border-color: rgba(0, 0, 0, 0.15) !important;
-}
-
-.light-mode .bg-white\\/5 {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
-.light-mode .bg-white\\/10 {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-}
-
 .light-mode .text-purple-300 {
   color: #7c3aed !important;
 }
