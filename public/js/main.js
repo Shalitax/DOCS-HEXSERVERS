@@ -299,20 +299,103 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Buscador móvil
+const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+const mobileSearchPanel = document.getElementById('mobile-search-panel');
+const mobileSearchInput = document.getElementById('mobile-search-input');
+const mobileSearchResults = document.getElementById('mobile-search-results');
+const mobileSearchClose = document.getElementById('mobile-search-close');
+let mobileSearchTimeout;
+
+if (mobileSearchToggle) {
+  mobileSearchToggle.addEventListener('click', () => {
+    mobileSearchPanel.classList.toggle('hidden');
+    if (!mobileSearchPanel.classList.contains('hidden')) {
+      mobileSearchInput.focus();
+    }
+  });
+}
+
+if (mobileSearchClose) {
+  mobileSearchClose.addEventListener('click', () => {
+    mobileSearchPanel.classList.add('hidden');
+    mobileSearchInput.value = '';
+    mobileSearchResults.classList.add('hidden');
+  });
+}
+
+if (mobileSearchInput) {
+  mobileSearchInput.addEventListener('input', (e) => {
+    clearTimeout(mobileSearchTimeout);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+      mobileSearchResults.classList.add('hidden');
+      return;
+    }
+    
+    mobileSearchTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const results = await response.json();
+        
+        if (results.length === 0) {
+          mobileSearchResults.innerHTML = '<div class="p-4 text-gray-400 text-sm">No se encontraron resultados</div>';
+          mobileSearchResults.classList.remove('hidden');
+          return;
+        }
+        
+        const html = results.map(result => `
+          <a href="${result.url}" class="block p-3 hover:bg-gray-900 transition-all duration-200 border-b border-white/5 last:border-b-0">
+            <div class="font-medium text-white text-sm">${result.title}</div>
+            <div class="text-xs text-gray-400 mt-1">
+              <i class="fas fa-folder mr-1"></i>${result.category} 
+              <i class="fas fa-chevron-right mx-1 text-xs"></i> 
+              ${result.subcategory}
+            </div>
+          </a>
+        `).join('');
+        
+        mobileSearchResults.innerHTML = html;
+        mobileSearchResults.classList.remove('hidden');
+      } catch (error) {
+        console.error('Error en búsqueda móvil:', error);
+        mobileSearchResults.innerHTML = '<div class="p-4 text-red-400 text-sm">Error al buscar</div>';
+        mobileSearchResults.classList.remove('hidden');
+      }
+    }, 300);
+  });
+  
+  // Cerrar resultados móviles al hacer clic fuera
+  document.addEventListener('click', (e) => {
+    if (mobileSearchPanel && !mobileSearchPanel.contains(e.target) && e.target !== mobileSearchToggle) {
+      if (!mobileSearchPanel.classList.contains('hidden')) {
+        mobileSearchPanel.classList.add('hidden');
+        mobileSearchInput.value = '';
+        mobileSearchResults.classList.add('hidden');
+      }
+    }
+  });
+}
+
 // Menu toggle para móvil
 const menuToggle = document.getElementById('menu-toggle');
 const sidebar = document.getElementById('sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-menuToggle.addEventListener('click', () => {
-  sidebar.classList.toggle('-translate-x-full');
-  sidebarOverlay.classList.toggle('hidden');
-});
+if (menuToggle) {
+  menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('-translate-x-full');
+    sidebarOverlay.classList.toggle('hidden');
+  });
+}
 
-sidebarOverlay.addEventListener('click', () => {
-  sidebar.classList.add('-translate-x-full');
-  sidebarOverlay.classList.add('hidden');
-});
+if (sidebarOverlay) {
+  sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.add('hidden');
+  });
+}
 
 // Copiar código al portapapeles
 document.querySelectorAll('pre').forEach((pre) => {

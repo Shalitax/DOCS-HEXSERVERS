@@ -18,12 +18,36 @@
   
   <%- include('partials/header') %>
 
-  <div class="flex pt-20">
+  <div class="flex pt-14 sm:pt-20">
     <%- include('partials/sidebar') %>
 
     <!-- Contenido principal -->
-    <main class="flex-1 lg:ml-80 p-8">
+    <main class="flex-1 lg:ml-80 p-4 sm:p-6 lg:p-8">
       <div class="max-w-4xl mx-auto">
+        <!-- Breadcrumb -->
+        <% if (typeof breadcrumb !== 'undefined' && breadcrumb) { %>
+          <nav class="mb-4 sm:mb-6 animate-fade-in">
+            <ol class="flex items-center flex-wrap text-xs sm:text-sm glass rounded-lg px-3 py-2 sm:px-4 sm:py-3">
+              <li class="flex items-center gap-2">
+                <a href="/docs/<%= breadcrumb.category.slug %>" class="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                  <i class="fas fa-home text-xs"></i>
+                  <span><%= breadcrumb.category.name %></span>
+                </a>
+              </li>
+              <li class="text-gray-600 mx-2"><i class="fas fa-chevron-right text-xs"></i></li>
+              <li class="flex items-center gap-2">
+                <a href="/docs/<%= breadcrumb.category.slug %>/<%= breadcrumb.subcategory.slug %>" class="text-gray-400 hover:text-white transition-colors">
+                  <%= breadcrumb.subcategory.name %>
+                </a>
+              </li>
+              <li class="text-gray-600 mx-2"><i class="fas fa-chevron-right text-xs"></i></li>
+              <li class="text-white font-medium">
+                <%= breadcrumb.document %>
+              </li>
+            </ol>
+          </nav>
+        <% } %>
+
         <!-- Botón de edición si está logueado -->
         <% if (isAuthenticated && typeof docId !== 'undefined' && docId) { %>
           <div class="mb-6 flex justify-end">

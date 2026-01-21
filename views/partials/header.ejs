@@ -1,28 +1,33 @@
 <!-- Header con buscador -->
 <header class="fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/10">
-  <div class="container mx-auto px-6 py-4">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
+  <div class="container mx-auto px-3 sm:px-6 py-3 sm:py-4">
+    <div class="flex items-center justify-between gap-2">
+      <!-- Botón menú móvil -->
+      <button id="menu-toggle" class="lg:hidden glass px-3 py-2 rounded-lg text-white">
+        <i class="fas fa-bars"></i>
+      </button>
+      
+      <div class="flex items-center space-x-2 sm:space-x-4">
         <a href="/" class="flex items-center hover:opacity-80 transition-opacity">
           <% if (typeof logoSettings !== 'undefined' && logoSettings.logo_type === 'image' && logoSettings.logo_url) { %>
-            <img src="<%= logoSettings.logo_url %>" alt="Logo" class="h-8 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-            <h1 class="text-2xl font-bold font-display text-white tracking-tight hidden"><%= logoSettings.logo_text || 'HexServers Docs' %></h1>
+            <img src="<%= logoSettings.logo_url %>" alt="Logo" class="h-6 sm:h-8 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <h1 class="text-lg sm:text-2xl font-bold font-display text-white tracking-tight hidden"><%= logoSettings.logo_text || 'HexServers Docs' %></h1>
           <% } else { %>
-            <h1 class="text-2xl font-bold font-display text-white tracking-tight hover:text-purple-300 transition-colors">
+            <h1 class="text-lg sm:text-2xl font-bold font-display text-white tracking-tight hover:text-purple-300 transition-colors">
               <%= (typeof logoSettings !== 'undefined' && logoSettings.logo_text) ? logoSettings.logo_text : 'HexServers Docs' %>
             </h1>
           <% } %>
         </a>
         <% if (isAuthenticated) { %>
-          <a href="/admin" class="glass px-3 py-1 rounded-lg text-sm hover:bg-white/20 text-white transition-all">
+          <a href="/admin" class="hidden sm:flex glass px-3 py-1 rounded-lg text-sm hover:bg-white/20 text-white transition-all">
             <i class="fas fa-cog mr-1"></i>Admin
           </a>
         <% } %>
       </div>
       
       <!-- Buscador -->
-      <div class="flex-1 max-w-2xl mx-8">
-        <div class="relative">
+      <div class="hidden md:flex flex-1 max-w-2xl mx-4 lg:mx-8">
+        <div class="relative w-full">
           <input 
             type="text" 
             id="search-input"
@@ -32,19 +37,40 @@
           <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
           
           <!-- Resultados de búsqueda -->
-          <div id="search-results" class="absolute top-full mt-2 w-full bg-black rounded-lg border border-white/10 hidden max-h-96 overflow-y-auto scrollbar-thin shadow-2xl">
+          <div id="search-results" class="absolute top-full mt-2 w-full bg-black rounded-lg border border-white/10 hidden max-h-96 overflow-y-auto scrollbar-thin shadow-2xl z-50">
           </div>
         </div>
       </div>
       
-      <div class="flex items-center space-x-3">
+      <!-- Buscador móvil (expandible) -->
+      <div id="mobile-search-panel" class="hidden md:hidden absolute top-full left-0 right-0 p-3 glass-dark border-b border-white/10">
+        <div class="relative">
+          <input 
+            type="text" 
+            id="mobile-search-input"
+            placeholder="Buscar guías..."
+            class="w-full glass px-4 py-2 pl-10 pr-10 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-white transition-all text-sm"
+          >
+          <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          <button id="mobile-search-close" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white">
+            <i class="fas fa-times"></i>
+          </button>
+          
+          <!-- Resultados de búsqueda móvil -->
+          <div id="mobile-search-results" class="absolute top-full mt-2 w-full bg-black rounded-lg border border-white/10 hidden max-h-96 overflow-y-auto scrollbar-thin shadow-2xl z-50">
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <!-- Botón de búsqueda móvil -->
+        <button id="mobile-search-toggle" class="md:hidden glass px-3 py-2 rounded-lg hover:bg-white/20 transition-all" title="Buscar">
+          <i class="fas fa-search text-white"></i>
+        </button>
+        
         <!-- Botón Dark/Light Mode -->
         <button id="theme-toggle" class="glass px-3 py-2 rounded-lg hover:bg-white/20 transition-all" title="Cambiar tema">
           <i class="fas fa-moon text-white" id="theme-icon"></i>
-        </button>
-        
-        <button id="menu-toggle" class="lg:hidden glass px-4 py-2 rounded-lg">
-          <i class="fas fa-bars"></i>
         </button>
       </div>
     </div>

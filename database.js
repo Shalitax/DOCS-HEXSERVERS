@@ -459,7 +459,11 @@ const docDb = {
   getBySlug: (categorySlug, subcategorySlug, docSlug) => {
     return new Promise((resolve, reject) => {
       db.get(
-        `SELECT d.*, s.slug as subcategory_slug, c.slug as category_slug
+        `SELECT d.*, 
+                s.slug as subcategory_slug, 
+                s.display_name as subcategory_name,
+                c.slug as category_slug,
+                c.display_name as category_name
          FROM documentation d
          JOIN subcategories s ON d.subcategory_id = s.id
          JOIN categories c ON s.category_id = c.id

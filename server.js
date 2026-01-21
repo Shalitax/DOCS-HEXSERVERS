@@ -485,12 +485,26 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
 
     const htmlContent = md.render(doc.content);
 
+    // Preparar breadcrumb
+    const breadcrumb = {
+      category: {
+        name: doc.category_name,
+        slug: doc.category_slug
+      },
+      subcategory: {
+        name: doc.subcategory_name,
+        slug: doc.subcategory_slug
+      },
+      document: doc.title
+    };
+
     res.render('index', {
       structure,
       content: htmlContent,
       title: doc.title,
       currentPath: `${category}/${subcategory}/${guide}`,
       docId: doc.id,
+      breadcrumb: breadcrumb,
       metadata: pageMetadata,
       baseMetadata: getBaseMetadata()
     });
