@@ -1,0 +1,213 @@
+<% if (isAuthenticated) { %>
+<!-- Modal para Categoría -->
+<div id="categoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50">
+  <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
+    <h2 id="categoryModalTitle" class="text-2xl font-bold mb-6 font-display">Nueva Categoría</h2>
+    <form id="categoryForm" class="space-y-4">
+      <input type="hidden" id="categoryId">
+      <div>
+        <label class="block text-sm font-medium mb-2">Nombre</label>
+        <input type="text" id="categoryName" required class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Nombre para Mostrar</label>
+        <input type="text" id="categoryDisplayName" required class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Slug</label>
+        <input type="text" id="categorySlug" required class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Tipo de Icono</label>
+        <select id="categoryIconType" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white">
+          <option value="fontawesome" class="bg-gray-900">Font Awesome</option>
+          <option value="image" class="bg-gray-900">Imagen PNG</option>
+        </select>
+      </div>
+      <div id="categoryIconFAGroup">
+        <label class="block text-sm font-medium mb-2">Icono (FontAwesome)</label>
+        <input type="text" id="categoryIcon" value="fas fa-folder" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500" placeholder="fas fa-folder">
+        <p class="text-xs text-gray-400 mt-1">Ejemplo: fas fa-folder, fas fa-book, fas fa-code</p>
+      </div>
+      <div id="categoryIconImageGroup" class="hidden">
+        <label class="block text-sm font-medium mb-2">URL de la Imagen PNG</label>
+        <input type="text" id="categoryIconImage" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500" placeholder="/images/icons/miicono.png">
+        <p class="text-xs text-gray-400 mt-1">Coloca la imagen en public/images/icons/ y usa la ruta: /images/icons/nombre.png</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Orden</label>
+        <input type="number" id="categoryOrder" value="0" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" id="categoryHidden" class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500 focus:ring-2">
+        <label for="categoryHidden" class="ml-2 text-sm font-medium text-gray-300">Ocultar del sidebar (solo visible en búsquedas)</label>
+      </div>
+      <div class="flex space-x-3 mt-6">
+        <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+          Guardar
+        </button>
+        <button type="button" onclick="hideModal('categoryModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para Subcategoría -->
+<div id="subcategoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50">
+  <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
+    <h2 id="subcategoryModalTitle" class="text-2xl font-bold mb-6 font-display">Nueva Subcategoría</h2>
+    <form id="subcategoryForm" class="space-y-4">
+      <input type="hidden" id="subcategoryCategoryId">
+      <input type="hidden" id="subcategoryParentId">
+      <input type="hidden" id="subcategoryId">
+      <div>
+        <label class="block text-sm font-medium mb-2">Nombre</label>
+        <input type="text" id="subcategoryName" required class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Nombre para Mostrar</label>
+        <input type="text" id="subcategoryDisplayName" required class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Slug</label>
+        <input type="text" id="subcategorySlug" required class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Tipo de Icono</label>
+        <select id="subcategoryIconType" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white">
+          <option value="fontawesome" class="bg-gray-900">Font Awesome</option>
+          <option value="image" class="bg-gray-900">Imagen PNG</option>
+        </select>
+      </div>
+      <div id="subcategoryIconFAGroup">
+        <label class="block text-sm font-medium mb-2">Icono (FontAwesome)</label>
+        <input type="text" id="subcategoryIcon" value="fas fa-folder-open" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500" placeholder="fas fa-folder-open">
+        <p class="text-xs text-gray-400 mt-1">Ejemplo: fas fa-folder-open, fas fa-file-alt, fas fa-cog</p>
+      </div>
+      <div id="subcategoryIconImageGroup" class="hidden">
+        <label class="block text-sm font-medium mb-2">URL de la Imagen PNG</label>
+        <input type="text" id="subcategoryIconImage" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500" placeholder="/images/icons/miicono.png">
+        <p class="text-xs text-gray-400 mt-1">Coloca la imagen en public/images/icons/ y usa la ruta: /images/icons/nombre.png</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Orden</label>
+        <input type="number" id="subcategoryOrder" value="0" class="w-full bg-black/40 border border-white/20 px-4 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500">
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" id="subcategoryHidden" class="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500 focus:ring-2">
+        <label for="subcategoryHidden" class="ml-2 text-sm font-medium text-gray-300">Ocultar del sidebar (solo visible en búsquedas)</label>
+      </div>
+      <div class="flex space-x-3 mt-6">
+        <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+          Guardar
+        </button>
+        <button type="button" onclick="hideModal('subcategoryModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-[60]">
+  <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
+    <div class="text-center mb-6">
+      <div id="confirmIcon" class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-yellow-500/20">
+        <i class="fas fa-exclamation-circle text-2xl text-yellow-400"></i>
+      </div>
+      <h2 id="confirmTitle" class="text-2xl font-bold mb-2 font-display"></h2>
+      <p id="confirmMessage" class="text-gray-300"></p>
+    </div>
+    <div class="flex space-x-3">
+      <button id="confirmButton" class="flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+        Confirmar
+      </button>
+      <button onclick="hideConfirmModal()" class="flex-1 glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Alerta -->
+<div id="alertModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-[60]">
+  <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
+    <div class="text-center mb-6">
+      <div id="alertIcon" class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4">
+        <i class="text-2xl"></i>
+      </div>
+      <h2 id="alertTitle" class="text-2xl font-bold mb-2 font-display"></h2>
+      <p id="alertMessage" class="text-gray-300"></p>
+    </div>
+    <button onclick="hideAlertModal()" class="w-full bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+      Aceptar
+    </button>
+  </div>
+</div>
+
+<!-- Modal para Documentación -->
+<div id="docModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+  <div class="glass rounded-xl p-6 border border-white/20 max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slide-up shadow-2xl">
+    <h2 id="docModalTitle" class="text-2xl font-bold mb-5 font-display">Nueva Documentación</h2>
+    <form id="docForm" class="space-y-4">
+      <input type="hidden" id="docId">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Categoría</label>
+          <select id="docCategory" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white text-sm">
+            <option value="" class="bg-gray-900">Selecciona una categoría</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Subcategoría</label>
+          <select id="docSubcategoryId" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white text-sm">
+            <option value="" class="bg-gray-900">Primero selecciona categoría</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Título</label>
+          <input type="text" id="docTitle" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Slug (URL)</label>
+          <input type="text" id="docSlug" required class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Descripción</label>
+        <input type="text" id="docDescription" class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium mb-2">Contenido (Markdown)</label>
+        <textarea id="docContent" required rows="8" class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 font-mono text-sm resize-y" placeholder="# Tu contenido en Markdown aquí..."></textarea>
+        <p class="text-xs text-gray-400 mt-1">Soporta Markdown completo con código, tablas, imágenes, etc.</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Orden</label>
+          <input type="number" id="docOrder" value="0" class="w-full bg-black/40 border border-white/20 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 text-white placeholder-gray-500 text-sm">
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-3 pt-3">
+        <button type="button" onclick="hideModal('docModal')" class="glass px-4 py-2 rounded-lg hover:bg-white/10 transition-all font-medium">
+          Cancelar
+        </button>
+        <button type="submit" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+          <i class="fas fa-save mr-2"></i>Guardar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<% } %>

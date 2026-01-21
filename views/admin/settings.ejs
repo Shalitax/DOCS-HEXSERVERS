@@ -1,0 +1,233 @@
+<%
+  const headerButtons = `
+    <a href="/admin" class="glass px-4 py-2 rounded-lg hover:bg-white/20 transition-all font-medium">
+      <i class="fas fa-arrow-left mr-2"></i>Volver al Panel
+    </a>
+  `;
+%>
+<%- include('../partials/admin-head', { pageTitle: 'Configuración' }) %>
+<%- include('../partials/admin-header', { 
+  headerTitle: '<i class="fas fa-cog mr-2"></i>Configuración del Sitio',
+  headerButtons: headerButtons,
+  showHomeButton: true,
+  showLogoutButton: true
+}) %>
+
+  <div class="container mx-auto px-6 py-8 max-w-4xl">
+    
+    <!-- Logo Settings -->
+    <div class="glass rounded-xl p-6 border border-white/20 mb-6 shadow-xl">
+      <h2 class="text-2xl font-bold mb-6 font-display flex items-center">
+        <i class="fas fa-image mr-3 text-purple-400"></i>
+        Configuración del Logo
+      </h2>
+
+      <form id="logo-form" class="space-y-4">
+        <!-- Logo Type Selection -->
+        <div>
+          <label class="block text-sm font-medium mb-3">Tipo de Logo</label>
+          <div class="flex gap-4">
+            <label class="flex items-center cursor-pointer">
+              <input type="radio" name="logo_type" value="text" <%= settings.logo_type === 'text' ? 'checked' : '' %> class="mr-2">
+              <span>Texto</span>
+            </label>
+            <label class="flex items-center cursor-pointer">
+              <input type="radio" name="logo_type" value="image" <%= settings.logo_type === 'image' ? 'checked' : '' %> class="mr-2">
+              <span>Imagen (URL)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Text Logo Input -->
+        <div id="text-logo-input" class="<%= settings.logo_type === 'image' ? 'hidden' : '' %>">
+          <label class="block text-sm font-medium mb-2">Texto del Logo</label>
+          <input 
+            type="text" 
+            name="logo_text" 
+            value="<%= settings.logo_text || 'HexServers Docs' %>"
+            placeholder="HexServers Docs"
+            class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+          >
+        </div>
+
+        <!-- Image Logo Input -->
+        <div id="image-logo-input" class="<%= settings.logo_type === 'text' ? 'hidden' : '' %>">
+          <label class="block text-sm font-medium mb-2">URL de la Imagen</label>
+          <input 
+            type="url" 
+            name="logo_url" 
+            value="<%= settings.logo_url || '' %>"
+            placeholder="https://ejemplo.com/logo.png"
+            class="w-full glass px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+          >
+          <p class="text-sm text-gray-400 mt-2">
+            <i class="fas fa-info-circle mr-1"></i>La imagen debe ser accesible públicamente
+          </p>
+        </div>
+
+        <!-- Preview -->
+        <div class="mt-6">
+          <label class="block text-sm font-medium mb-3">Vista Previa</label>
+          <div class="glass-dark p-6 rounded-lg border border-white/10">
+            <div id="logo-preview" class="flex items-center">
+              <% if (settings.logo_type === 'image' && settings.logo_url) { %>
+                <img src="<%= settings.logo_url %>" alt="Logo" class="h-8 object-contain" onerror="this.style.display='none'">
+              <% } else { %>
+                <span class="text-2xl font-bold font-display text-white"><%= settings.logo_text || 'HexServers Docs' %></span>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex justify-end mt-6">
+          <button 
+            type="submit" 
+            class="glass px-6 py-3 rounded-lg hover:bg-purple-500/30 transition-all font-semibold text-purple-300 border border-purple-500/30"
+          >
+            <i class="fas fa-save mr-2"></i>Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Database Backup -->
+    <div class="glass rounded-xl p-6 border border-white/20 shadow-xl">
+      <h2 class="text-2xl font-bold mb-6 font-display flex items-center">
+        <i class="fas fa-database mr-3 text-blue-400"></i>
+        Respaldo de Base de Datos
+      </h2>
+
+      <div class="space-y-4">
+        <p class="text-gray-300">
+          Descarga una copia de seguridad completa de tu base de datos. Incluye todos los documentos, categorías, usuarios y configuraciones.
+        </p>
+
+        <div class="flex items-center justify-between glass-dark p-4 rounded-lg border border-white/10">
+          <div>
+            <p class="font-semibold mb-1">Base de datos actual</p>
+            <p class="text-sm text-gray-400">hexservers.db</p>
+          </div>
+          <button 
+            onclick="downloadBackup()" 
+            class="glass px-6 py-3 rounded-lg hover:bg-blue-500/30 transition-all font-semibold text-blue-300 border border-blue-500/30"
+          >
+            <i class="fas fa-download mr-2"></i>Descargar Respaldo
+          </button>
+        </div>
+
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+          <p class="text-sm text-yellow-200">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <strong>Importante:</strong> Guarda el respaldo en un lugar seguro. Este archivo contiene toda la información de tu sitio.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Logo type toggle
+    const logoTypeInputs = document.querySelectorAll('input[name="logo_type"]');
+    const textLogoInput = document.getElementById('text-logo-input');
+    const imageLogoInput = document.getElementById('image-logo-input');
+    const logoPreview = document.getElementById('logo-preview');
+    const logoForm = document.getElementById('logo-form');
+
+    logoTypeInputs.forEach(input => {
+      input.addEventListener('change', (e) => {
+        const value = e.target.value;
+        if (value === 'text') {
+          textLogoInput.classList.remove('hidden');
+          imageLogoInput.classList.add('hidden');
+          updatePreview();
+        } else {
+          textLogoInput.classList.add('hidden');
+          imageLogoInput.classList.remove('hidden');
+          updatePreview();
+        }
+      });
+    });
+
+    // Update preview on input
+    const logoTextInput = document.querySelector('input[name="logo_text"]');
+    const logoUrlInput = document.querySelector('input[name="logo_url"]');
+
+    logoTextInput?.addEventListener('input', updatePreview);
+    logoUrlInput?.addEventListener('input', updatePreview);
+
+    function updatePreview() {
+      const logoType = document.querySelector('input[name="logo_type"]:checked').value;
+      
+      if (logoType === 'text') {
+        const text = logoTextInput.value || 'HexServers Docs';
+        logoPreview.innerHTML = `<span class="text-2xl font-bold font-display text-white">${text}</span>`;
+      } else {
+        const url = logoUrlInput.value;
+        if (url) {
+          logoPreview.innerHTML = `<img src="${url}" alt="Logo" class="h-8 object-contain" onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'text-red-400\\'>Error al cargar la imagen</span>'">`;
+        } else {
+          logoPreview.innerHTML = '<span class="text-gray-400">Ingresa una URL para ver la vista previa</span>';
+        }
+      }
+    }
+
+    // Save logo settings
+    logoForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(logoForm);
+      const data = {
+        logo_type: formData.get('logo_type'),
+        logo_text: formData.get('logo_text'),
+        logo_url: formData.get('logo_url')
+      };
+
+      try {
+        const response = await fetch('/api/admin/settings/logo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          showAlertModal('Logo actualizado correctamente', 'success');
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showAlertModal('Error al guardar el logo', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlertModal('Error al guardar el logo', 'error');
+      }
+    });
+
+    // Download backup
+    async function downloadBackup() {
+      try {
+        const response = await fetch('/api/admin/backup/download');
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `hexservers-backup-${new Date().toISOString().split('T')[0]}.db`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          showAlertModal('Respaldo descargado correctamente', 'success');
+        } else {
+          showAlertModal('Error al descargar el respaldo', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlertModal('Error al descargar el respaldo', 'error');
+      }
+    }
+  </script>
+<%- include('../partials/admin-footer', { adminScript: '' }) %>

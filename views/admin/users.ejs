@@ -1,36 +1,17 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <% if (typeof metadata !== 'undefined' && typeof baseMetadata !== 'undefined') { %>
-    <%- include('../partials/metadata') %>
-  <% } else { %>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Usuarios - HexServers Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
-  <% } %>
-  <link href="/css/output.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body class="text-white min-h-screen">
-  
-  <header class="glass border-b border-white/20 shadow-lg">
-    <div class="container mx-auto px-6 py-4">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold font-display text-white">
-          Gestión de Usuarios
-        </h1>
-        <div class="flex space-x-3">
-          <button onclick="showUserModal()" class="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all text-white font-semibold">
-            <i class="fas fa-plus mr-2"></i>Nuevo Usuario
-          </button>
-          <a href="/admin" class="glass px-4 py-2 rounded-lg hover:bg-white/20 transition-all font-medium">
-            <i class="fas fa-arrow-left mr-2"></i>Volver
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
+<%- include('../partials/admin-head', { pageTitle: 'Gestión de Usuarios' }) %>
+
+<%
+  const headerButtons = `
+    <button onclick="showUserModal()" class="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all text-white font-semibold">
+      <i class="fas fa-plus mr-2"></i>Nuevo Usuario
+    </button>
+  `;
+%>
+<%- include('../partials/admin-header', { 
+  headerTitle: 'Gestión de Usuarios', 
+  headerButtons: headerButtons,
+  showBackButton: true 
+}) %>
 
   <div class="container mx-auto px-6 py-8">
     
@@ -152,8 +133,7 @@
     </div>
   </div>
 
-  <script src="/js/admin-utils.js"></script>
-  <script src="/js/admin-users.js"></script>
-
-</body>
-</html>
+<%
+  const extraScripts = `<script src="/js/admin-users.js"></script>`;
+%>
+<%- include('../partials/admin-footer', { extraScripts: extraScripts }) %>

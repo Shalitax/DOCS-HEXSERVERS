@@ -79,7 +79,42 @@ function initDatabase() {
           FOREIGN KEY (subcategory_id) REFERENCES subcategories(id) ON DELETE CASCADE,
           UNIQUE(subcategory_id, slug)
         )
-      `, (err) => {
+      `);
+
+      // Tabla de configuraciones del sitio (landing page, etc.)
+      db.run(`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          setting_key TEXT UNIQUE NOT NULL,
+          setting_value TEXT,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Insertar contenido por defecto de la landing page si no existe
+      db.run(`
+        INSERT OR IGNORE INTO site_settings (setting_key, setting_value)
+        VALUES ('landing_page_content', '# Bienvenido a HexServers Docs
+
+Aquí encontrarás toda la documentación necesaria para configurar y administrar tus servicios.
+
+## 🚀 Comienza Ahora
+
+En este sitio encontrarás guías detalladas sobre:
+
+- **Configuración de servidores** - Aprende a configurar y mantener tu servidor
+- **Gestión de servicios** - Administra tus servicios de forma eficiente
+- **Soporte técnico** - Soluciones a problemas comunes
+
+## 📚 ¿Necesitas ayuda?
+
+Si no encuentras lo que buscas, contacta con nuestro equipo de soporte.')
+      `);
+
+      // Insertar configuración por defecto del logo si no existe
+      db.run(`INSERT OR IGNORE INTO site_settings (setting_key, setting_value) VALUES ('logo_type', 'text')`);
+      db.run(`INSERT OR IGNORE INTO site_settings (setting_key, setting_value) VALUES ('logo_text', 'HexServers Docs')`);
+      db.run(`INSERT OR IGNORE INTO site_settings (setting_key, setting_value) VALUES ('logo_url', '')`, (err) => {
         if (err) {
           reject(err);
         } else {
@@ -527,6 +562,40 @@ const docDb = {
   }
 };
 
+// Funciones para configuraciones del sitio
+const settingsDb = {
+  get: (key) => {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT setting_value FROM site_settings WHERE setting_key = ?', [key], (err, row) => {
+        if (err) reject(err);
+        else resolve(row ? row.setting_value : null);
+      });
+    });
+  },
+
+  set: (key, value) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT OR REPLACE INTO site_settings (setting_key, setting_value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+        [key, value],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  },
+
+  getAll: () => {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM site_settings ORDER BY setting_key', (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+  }
+};
+
 module.exports = {
   db,
   initDatabase,
@@ -534,5 +603,6 @@ module.exports = {
   userDb,
   categoryDb,
   subcategoryDb,
-  docDb
+  docDb,
+  settingsDb
 };

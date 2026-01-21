@@ -1,0 +1,278 @@
+<%
+  const headerButtons = `
+    <a href="/" target="_blank" class="glass px-4 py-2 rounded-lg hover:bg-white/20 transition-all font-medium">
+      <i class="fas fa-external-link-alt mr-2"></i>Ver Landing
+    </a>
+  `;
+%>
+<%- include('../partials/admin-head', { pageTitle: 'Editar Landing Page' }) %>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<%- include('../partials/admin-header', { 
+  headerTitle: 'Editar Landing Page',
+  headerButtons: headerButtons,
+  showBackButton: true 
+}) %>
+  <div class="subtitle-text">
+    <p class="text-sm">Modifica el contenido de la página de inicio</p>
+  </div>
+
+  <div class="container mx-auto px-6 py-8">
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Editor -->
+      <div class="glass rounded-xl p-6 border border-white/20 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold flex items-center">
+            <i class="fas fa-code mr-2 text-purple-400"></i>
+            Editor Markdown
+          </h2>
+          <div class="flex space-x-2">
+            <button onclick="insertMarkdownSyntax('# ', '')" class="glass px-3 py-1 rounded text-sm hover:bg-white/10 transition-all" title="Título 1">
+              <i class="fas fa-heading"></i> H1
+            </button>
+            <button onclick="insertMarkdownSyntax('## ', '')" class="glass px-3 py-1 rounded text-sm hover:bg-white/10 transition-all" title="Título 2">
+              <i class="fas fa-heading"></i> H2
+            </button>
+            <button onclick="insertMarkdownSyntax('**', '**')" class="glass px-3 py-1 rounded text-sm hover:bg-white/10 transition-all" title="Negrita">
+              <i class="fas fa-bold"></i>
+            </button>
+            <button onclick="insertMarkdownSyntax('*', '*')" class="glass px-3 py-1 rounded text-sm hover:bg-white/10 transition-all" title="Cursiva">
+              <i class="fas fa-italic"></i>
+            </button>
+            <button onclick="insertMarkdownSyntax('- ', '')" class="glass px-3 py-1 rounded text-sm hover:bg-white/10 transition-all" title="Lista">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
+        </div>
+        
+        <textarea 
+          id="contentEditor" 
+          class="w-full glass px-4 py-3 rounded-lg text-white font-mono min-h-[500px] focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+          placeholder="Escribe el contenido en Markdown..."
+        ><%= content %></textarea>
+        
+        <div class="flex justify-between items-center mt-4">
+          <button onclick="restoreDefault()" class="glass px-4 py-2 rounded-lg hover:bg-yellow-500/20 text-yellow-400 transition-all font-medium">
+            <i class="fas fa-undo mr-2"></i>Restaurar Original
+          </button>
+          <button onclick="saveLanding()" class="bg-gradient-to-r from-green-600 to-green-800 hover:from-green-700 hover:to-green-900 text-white font-semibold px-6 py-2 rounded-lg transition-all">
+            <i class="fas fa-save mr-2"></i>Guardar Cambios
+          </button>
+        </div>
+      </div>
+      
+      <!-- Preview -->
+      <div class="glass rounded-xl p-6 border border-white/20 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold flex items-center">
+            <i class="fas fa-eye mr-2 text-blue-400"></i>
+            Vista Previa
+          </h2>
+          <button onclick="updatePreview()" class="glass px-3 py-2 rounded-lg hover:bg-white/10 transition-all text-sm">
+            <i class="fas fa-sync-alt mr-1"></i>Actualizar
+          </button>
+        </div>
+        
+        <div id="preview" class="markdown-content min-h-[500px] overflow-y-auto max-h-[600px] scrollbar-thin">
+          <!-- Preview se cargará aquí -->
+        </div>
+      </div>
+      
+    </div>
+    
+    <!-- Guía de Markdown -->
+    <div class="mt-6 glass rounded-xl p-6 border border-white/20 shadow-xl">
+      <button onclick="toggleMarkdownGuide()" class="flex items-center justify-between w-full text-left">
+        <h3 class="text-lg font-bold flex items-center">
+          <i class="fas fa-question-circle mr-2 text-green-400"></i>
+          Guía de Markdown
+        </h3>
+        <i class="fas fa-chevron-down transition-transform" id="guideChevron"></i>
+      </button>
+      
+      <div id="markdownGuide" class="mt-4 hidden space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h4 class="font-semibold text-purple-400 mb-2">Formato de Texto</h4>
+            <ul class="text-sm text-gray-300 space-y-1">
+              <li><code class="bg-black/50 px-2 py-1 rounded"># Título 1</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">## Título 2</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">### Título 3</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">**Negrita**</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">*Cursiva*</code></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold text-purple-400 mb-2">Listas y Enlaces</h4>
+            <ul class="text-sm text-gray-300 space-y-1">
+              <li><code class="bg-black/50 px-2 py-1 rounded">- Item de lista</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">1. Item numerado</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">[Texto](URL)</code></li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">![Alt](imagen.png)</code></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold text-purple-400 mb-2">Iconos (Font Awesome)</h4>
+            <ul class="text-sm text-gray-300 space-y-1">
+              <li>🚀 - <code class="bg-black/50 px-2 py-1 rounded">:rocket:</code></li>
+              <li>📚 - <code class="bg-black/50 px-2 py-1 rounded">:books:</code></li>
+              <li>⚡ - <code class="bg-black/50 px-2 py-1 rounded">:zap:</code></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold text-purple-400 mb-2">Otros</h4>
+            <ul class="text-sm text-gray-300 space-y-1">
+              <li><code class="bg-black/50 px-2 py-1 rounded">`código`</code> - Código inline</li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">```</code> - Bloque de código</li>
+              <li><code class="bg-black/50 px-2 py-1 rounded">> Cita</code> - Cita</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
+  <script src="https://unpkg.com/marked@4.3.0/marked.min.js"></script>
+  <script>
+    // Variables globales
+    let previewTimeout;
+    let editor;
+    let preview;
+    
+    // Esperar a que el DOM y marked estén disponibles
+    window.addEventListener('DOMContentLoaded', () => {
+      editor = document.getElementById('contentEditor');
+      preview = document.getElementById('preview');
+      
+      if (!editor || !preview) {
+        console.error('Editor o preview no encontrado');
+        return;
+      }
+      
+      // Auto-actualizar preview mientras se escribe
+      editor.addEventListener('input', () => {
+        clearTimeout(previewTimeout);
+        previewTimeout = setTimeout(updatePreview, 500);
+      });
+      
+      // Actualizar preview al cargar
+      setTimeout(updatePreview, 100);
+    });
+    
+    function updatePreview() {
+      if (!editor || !preview) {
+        editor = document.getElementById('contentEditor');
+        preview = document.getElementById('preview');
+        if (!editor || !preview) return;
+      }
+      
+      const markdown = editor.value;
+      
+      try {
+        if (typeof marked !== 'undefined' && marked.parse) {
+          preview.innerHTML = marked.parse(markdown);
+        } else {
+          preview.innerHTML = '<p class="text-yellow-400">Cargando preview...</p>';
+          setTimeout(updatePreview, 500);
+        }
+      } catch (error) {
+        console.error('Error al renderizar markdown:', error);
+        preview.innerHTML = '<p class="text-red-400">Error al renderizar el preview</p>';
+      }
+    }
+    
+    function saveLanding() {
+      if (!editor) {
+        editor = document.getElementById('contentEditor');
+        if (!editor) {
+          showAlertModal('Error: Editor no encontrado', 'error');
+          return;
+        }
+      }
+      
+      const content = editor.value;
+      
+      fetch('/api/admin/landing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data.success) {
+          showAlertModal('Landing page guardada correctamente', 'success');
+        } else {
+          showAlertModal(data.error || 'Error al guardar', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showAlertModal('Error al guardar: ' + error.message, 'error');
+      });
+    }
+    
+    function restoreDefault() {
+      if (!editor) {
+        editor = document.getElementById('contentEditor');
+        if (!editor) return;
+      }
+      
+      if (confirm('¿Estás seguro de restaurar el contenido original? Se perderán los cambios actuales.')) {
+        editor.value = `# Bienvenido a HexServers Docs
+
+Aquí encontrarás toda la documentación necesaria para configurar y administrar tus servicios.
+
+## 🚀 Comienza Ahora
+
+En este sitio encontrarás guías detalladas sobre:
+
+- **Configuración de servidores** - Aprende a configurar y mantener tu servidor
+- **Gestión de servicios** - Administra tus servicios de forma eficiente
+- **Soporte técnico** - Soluciones a problemas comunes
+
+## 📚 ¿Necesitas ayuda?
+
+Si no encuentras lo que buscas, contacta con nuestro equipo de soporte.`;
+        updatePreview();
+        showAlertModal('Contenido restaurado correctamente', 'success');
+      }
+    }
+    
+    function insertMarkdownSyntax(before, after) {
+      if (!editor) {
+        editor = document.getElementById('contentEditor');
+        if (!editor) return;
+      }
+      
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const selectedText = editor.value.substring(start, end);
+      const newText = editor.value.substring(0, start) + before + selectedText + after + editor.value.substring(end);
+      
+      editor.value = newText;
+      editor.focus();
+      editor.setSelectionRange(start + before.length, end + before.length);
+      updatePreview();
+    }
+    
+    function toggleMarkdownGuide() {
+      const guide = document.getElementById('markdownGuide');
+      const chevron = document.getElementById('guideChevron');
+      guide.classList.toggle('hidden');
+      chevron.classList.toggle('rotate-180');
+    }
+  </script>
+
+<%- include('../partials/admin-footer', { 
+  adminScript: '',
+  extraScripts: `<script src=\"https://unpkg.com/marked@4.3.0/marked.min.js\"></script>` 
+}) %>

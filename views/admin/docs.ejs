@@ -1,39 +1,19 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <% if (typeof metadata !== 'undefined' && typeof baseMetadata !== 'undefined') { %>
-    <%- include('../partials/metadata') %>
-  <% } else { %>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Documentación - HexServers Admin</title>
-    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
-  <% } %>
-  <link href="/css/output.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body class="text-white min-h-screen">
-  
-  <header class="glass border-b border-white/20 shadow-lg">
-    <div class="container mx-auto px-6 py-4">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold font-display text-white">
-          Gestión de Documentación
-        </h1>
-        <div class="flex space-x-3">
-          <button onclick="showCategoryModal()" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
-            <i class="fas fa-plus mr-2"></i>Nueva Categoría
-          </button>
-          <button onclick="showDocModal()" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
-            <i class="fas fa-plus mr-2"></i>Nueva Documentación
-          </button>
-          <a href="/admin" class="glass px-4 py-2 rounded-lg hover:bg-white/20 transition-all font-medium">
-            <i class="fas fa-arrow-left mr-2"></i>Volver
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
+<%
+  const headerButtons = `
+    <button onclick="showCategoryModal()" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+      <i class="fas fa-plus mr-2"></i>Nueva Categoría
+    </button>
+    <button onclick="showDocModal()" class="bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
+      <i class="fas fa-plus mr-2"></i>Nueva Documentación
+    </button>
+  `;
+%>
+<%- include('../partials/admin-head', { pageTitle: 'Gestión de Documentación' }) %>
+<%- include('../partials/admin-header', { 
+  headerTitle: 'Gestión de Documentación',
+  headerButtons: headerButtons,
+  showBackButton: true 
+}) %>
 
   <div class="container mx-auto px-6 py-8">
     
@@ -280,181 +260,181 @@
     </div>
   </div>
 
-  <script src="/js/admin-utils.js"></script>
-  <script src="/js/admin-categories.js"></script>
-  <script>
-    // Funciones para modal de documentación
-    function showDocModal(subcategoryId = null) {
-      document.getElementById('docModalTitle').textContent = 'Nueva Documentación';
-      document.getElementById('docForm').reset();
-      document.getElementById('docId').value = '';
-      
-      loadCategoriesForDoc();
-      
-      if (subcategoryId) {
-        setTimeout(() => {
-          const subcategorySelect = document.getElementById('docSubcategoryId');
-          const option = Array.from(subcategorySelect.options).find(opt => opt.value == subcategoryId);
-          if (option) {
-            const categoryId = option.dataset.categoryId;
-            document.getElementById('docCategory').value = categoryId;
-            loadSubcategoriesForDoc(categoryId, subcategoryId);
-          }
-        }, 100);
-      }
-      
-      document.getElementById('docModal').classList.remove('hidden');
-    }
-
-    async function editDocModal(docId) {
-      try {
-        // Obtener datos del documento
-        const response = await fetch(`/api/admin/docs/${docId}`);
-        const doc = await response.json();
+<%- include('../partials/admin-footer', { 
+  extraScripts: `
+    <script src="/js/admin-categories.js"></script>
+    <script>
+      // Funciones para modal de documentación
+      function showDocModal(subcategoryId = null) {
+        document.getElementById('docModalTitle').textContent = 'Nueva Documentación';
+        document.getElementById('docForm').reset();
+        document.getElementById('docId').value = '';
         
-        document.getElementById('docModalTitle').textContent = 'Editar Documentación';
-        document.getElementById('docId').value = doc.id;
-        document.getElementById('docTitle').value = doc.title;
-        document.getElementById('docSlug').value = doc.slug;
-        document.getElementById('docDescription').value = doc.description || '';
-        document.getElementById('docContent').value = doc.content;
-        document.getElementById('docOrder').value = doc.order_index;
+        loadCategoriesForDoc();
         
-        // Cargar todas las categorías primero
-        await loadCategoriesForDoc();
-        
-        // Determinar la categoría del documento
-        let categoryId = null;
-        
-        if (doc.subcategory && doc.subcategory.category_id) {
-          categoryId = doc.subcategory.category_id;
-        } else if (doc.subcategory_id) {
-          // Fallback: obtener subcategoría manualmente
-          const subResponse = await fetch(`/api/admin/subcategories/${doc.subcategory_id}`);
-          if (subResponse.ok) {
-            const subcategory = await subResponse.json();
-            if (subcategory && subcategory.category_id) {
-              categoryId = subcategory.category_id;
+        if (subcategoryId) {
+          setTimeout(() => {
+            const subcategorySelect = document.getElementById('docSubcategoryId');
+            const option = Array.from(subcategorySelect.options).find(opt => opt.value == subcategoryId);
+            if (option) {
+              const categoryId = option.dataset.categoryId;
+              document.getElementById('docCategory').value = categoryId;
+              loadSubcategoriesForDoc(categoryId, subcategoryId);
             }
-          }
+          }, 100);
         }
         
-        if (!categoryId) {
-          alert('Error: No se pudo determinar la categoría del documento.');
-          return;
-        }
-        
-        // Seleccionar la categoría (con pequeño delay para asegurar que el DOM esté listo)
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const categorySelect = document.getElementById('docCategory');
-        
-        // Intentar seleccionar con diferentes conversiones
-        categorySelect.value = String(categoryId);
-        if (!categorySelect.value) {
-          categorySelect.value = categoryId;
-        }
-        
-        // Cargar y seleccionar subcategoría
-        await loadSubcategoriesForDoc(categoryId, doc.subcategory_id);
-        
-        // Mostrar el modal
         document.getElementById('docModal').classList.remove('hidden');
-      } catch (error) {
-        console.error('Error al cargar documento:', error);
-        alert('Error al cargar el documento: ' + error.message);
       }
-    }
 
-    async function loadCategoriesForDoc() {
-      const categories = await fetch('/api/admin/categories').then(res => res.json());
-      const select = document.getElementById('docCategory');
-      select.innerHTML = '<option value="">Selecciona una categoría</option>';
-      categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.id;
-        option.textContent = cat.display_name;
-        select.appendChild(option);
-      });
-      return categories;
-    }
-
-    function loadSubcategoriesForDoc(categoryId, selectedId = null) {
-      if (!categoryId) {
-        const select = document.getElementById('docSubcategoryId');
-        select.innerHTML = '<option value="">Primero selecciona categoría</option>';
-        return Promise.resolve();
-      }
-      
-      return fetch(`/api/admin/subcategories/${categoryId}/flat`)
-        .then(res => res.json())
-        .then(subcategories => {
-          const select = document.getElementById('docSubcategoryId');
-          select.innerHTML = '<option value="">Selecciona una subcategoría</option>';
-          subcategories.forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.id;
-            option.textContent = sub.indentedName;
-            option.dataset.categoryId = categoryId;
-            if (selectedId && sub.id == selectedId) {
-              option.selected = true;
+      async function editDocModal(docId) {
+        try {
+          // Obtener datos del documento
+          const response = await fetch(\`/api/admin/docs/\${docId}\`);
+          const doc = await response.json();
+          
+          document.getElementById('docModalTitle').textContent = 'Editar Documentación';
+          document.getElementById('docId').value = doc.id;
+          document.getElementById('docTitle').value = doc.title;
+          document.getElementById('docSlug').value = doc.slug;
+          document.getElementById('docDescription').value = doc.description || '';
+          document.getElementById('docContent').value = doc.content;
+          document.getElementById('docOrder').value = doc.order_index;
+          
+          // Cargar todas las categorías primero
+          await loadCategoriesForDoc();
+          
+          // Determinar la categoría del documento
+          let categoryId = null;
+          
+          if (doc.subcategory && doc.subcategory.category_id) {
+            categoryId = doc.subcategory.category_id;
+          } else if (doc.subcategory_id) {
+            // Fallback: obtener subcategoría manualmente
+            const subResponse = await fetch(\`/api/admin/subcategories/\${doc.subcategory_id}\`);
+            if (subResponse.ok) {
+              const subcategory = await subResponse.json();
+              if (subcategory && subcategory.category_id) {
+                categoryId = subcategory.category_id;
+              }
             }
-            select.appendChild(option);
-          });
-        });
-    }
-
-    // Event listener para cambio de categoría
-    document.getElementById('docCategory')?.addEventListener('change', function() {
-      loadSubcategoriesForDoc(this.value);
-    });
-
-    // Auto-generar slug desde título
-    document.getElementById('docTitle')?.addEventListener('input', function() {
-      const slug = this.value
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      document.getElementById('docSlug').value = slug;
-    });
-
-    // Submit del formulario
-    document.getElementById('docForm')?.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const id = document.getElementById('docId').value;
-      const data = {
-        subcategory_id: document.getElementById('docSubcategoryId').value,
-        title: document.getElementById('docTitle').value,
-        slug: document.getElementById('docSlug').value,
-        description: document.getElementById('docDescription').value,
-        content: document.getElementById('docContent').value,
-        order_index: document.getElementById('docOrder').value
-      };
-      
-      try {
-        const response = await fetch(id ? `/admin/docs/edit/${id}` : '/admin/docs/new', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          hideModal('docModal');
-          location.reload();
-        } else {
-          alert(result.error || 'Error al guardar la documentación');
+          }
+          
+          if (!categoryId) {
+            alert('Error: No se pudo determinar la categoría del documento.');
+            return;
+          }
+          
+          // Seleccionar la categoría (con pequeño delay para asegurar que el DOM esté listo)
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const categorySelect = document.getElementById('docCategory');
+          
+          // Intentar seleccionar con diferentes conversiones
+          categorySelect.value = String(categoryId);
+          if (!categorySelect.value) {
+            categorySelect.value = categoryId;
+          }
+          
+          // Cargar y seleccionar subcategoría
+          await loadSubcategoriesForDoc(categoryId, doc.subcategory_id);
+          
+          // Mostrar el modal
+          document.getElementById('docModal').classList.remove('hidden');
+        } catch (error) {
+          console.error('Error al cargar documento:', error);
+          alert('Error al cargar el documento: ' + error.message);
         }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Error al guardar la documentación');
       }
-    });
-  </script>
 
-</body>
-</html>
+      async function loadCategoriesForDoc() {
+        const categories = await fetch('/api/admin/categories').then(res => res.json());
+        const select = document.getElementById('docCategory');
+        select.innerHTML = '<option value="">Selecciona una categoría</option>';
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat.id;
+          option.textContent = cat.display_name;
+          select.appendChild(option);
+        });
+        return categories;
+      }
+
+      function loadSubcategoriesForDoc(categoryId, selectedId = null) {
+        if (!categoryId) {
+          const select = document.getElementById('docSubcategoryId');
+          select.innerHTML = '<option value="">Primero selecciona categoría</option>';
+          return Promise.resolve();
+        }
+        
+        return fetch(\`/api/admin/subcategories/\${categoryId}/flat\`)
+          .then(res => res.json())
+          .then(subcategories => {
+            const select = document.getElementById('docSubcategoryId');
+            select.innerHTML = '<option value="">Selecciona una subcategoría</option>';
+            subcategories.forEach(sub => {
+              const option = document.createElement('option');
+              option.value = sub.id;
+              option.textContent = sub.indentedName;
+              option.dataset.categoryId = categoryId;
+              if (selectedId && sub.id == selectedId) {
+                option.selected = true;
+              }
+              select.appendChild(option);
+            });
+          });
+      }
+
+      // Event listener para cambio de categoría
+      document.getElementById('docCategory')?.addEventListener('change', function() {
+        loadSubcategoriesForDoc(this.value);
+      });
+
+      // Auto-generar slug desde título
+      document.getElementById('docTitle')?.addEventListener('input', function() {
+        const slug = this.value
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        document.getElementById('docSlug').value = slug;
+      });
+
+      // Submit del formulario
+      document.getElementById('docForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('docId').value;
+        const data = {
+          subcategory_id: document.getElementById('docSubcategoryId').value,
+          title: document.getElementById('docTitle').value,
+          slug: document.getElementById('docSlug').value,
+          description: document.getElementById('docDescription').value,
+          content: document.getElementById('docContent').value,
+          order_index: document.getElementById('docOrder').value
+        };
+        
+        try {
+          const response = await fetch(id ? \`/admin/docs/edit/\${id}\` : '/admin/docs/new', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            hideModal('docModal');
+            location.reload();
+          } else {
+            alert(result.error || 'Error al guardar la documentación');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al guardar la documentación');
+        }
+      });
+    </script>
+  ` 
+}) %>

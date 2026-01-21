@@ -6,8 +6,10 @@ const bcrypt = require('bcrypt');
 const MarkdownIt = require('markdown-it');
 const hljs = require('highlight.js');
 const bodyParser = require('body-parser');
+const { minify } = require('html-minifier');
+const rateLimit = require('express-rate-limit');
 
-const { initDatabase, createDefaultAdmin, userDb, categoryDb, subcategoryDb, docDb } = require('./database');
+const { initDatabase, createDefaultAdmin, userDb, categoryDb, subcategoryDb, docDb, settingsDb } = require('./database');
 const { requireAuth, requireGuest, passUser } = require('./middleware/auth');
 const { generatePageMetadata, getBaseMetadata } = require('./metadata');
 
@@ -29,6 +31,40 @@ const md = new MarkdownIt({
 });
 
 const PORT = process.env.PORT || 3000;
+
+// Función de logging mejorada
+function logError(context, error) {
+  const timestamp = new Date().toISOString();
+  const errorMessage = error.message || error;
+  const stack = error.stack || '';
+  
+  if (process.env.NODE_ENV === 'production') {
+    // En producción, log estructurado sin stack trace
+    console.error(JSON.stringify({
+      timestamp,
+      level: 'error',
+      context,
+      message: errorMessage
+    }));
+  } else {
+    // En desarrollo, log detallado con stack trace
+    console.error(`[${timestamp}] ERROR in ${context}:`, errorMessage);
+    if (stack) console.error(stack);
+  }
+}
+
+function logInfo(message) {
+  const timestamp = new Date().toISOString();
+  if (process.env.NODE_ENV === 'production') {
+    console.log(JSON.stringify({
+      timestamp,
+      level: 'info',
+      message
+    }));
+  } else {
+    console.log(`[${timestamp}] INFO:`, message);
+  }
+}
 
 // Configuración
 app.set('view engine', 'ejs');
@@ -56,7 +92,51 @@ app.use(session({
 // Middleware para pasar información del usuario a las vistas
 app.use(passUser);
 
+// Middleware para minificar HTML y eliminar comentarios (solo en producción)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const originalRender = res.render;
+    res.render = function(view, options, callback) {
+      originalRender.call(this, view, options, (err, html) => {
+        if (err) return callback ? callback(err) : next(err);
+        
+        try {
+          const minified = minify(html, {
+            removeComments: true,
+            collapseWhitespace: true,
+            removeAttributeQuotes: false,
+            minifyJS: true,
+            minifyCSS: true
+          });
+          callback ? callback(null, minified) : res.send(minified);
+        } catch (minifyErr) {
+          logError('HTML Minification', minifyErr);
+          callback ? callback(null, html) : res.send(html);
+        }
+      });
+    };
+    next();
+  });
+}
+
 // ===== FUNCIONES AUXILIARES =====
+
+// Helper para renderizar con metadata y logo settings
+async function renderWithMetadata(res, view, data, metadataOptions) {
+  const pageMetadata = generatePageMetadata(metadataOptions);
+  const logoSettings = {
+    logo_type: await settingsDb.get('logo_type') || 'text',
+    logo_text: await settingsDb.get('logo_text') || 'HexServers Docs',
+    logo_url: await settingsDb.get('logo_url') || ''
+  };
+  
+  res.render(view, {
+    ...data,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata(),
+    logoSettings
+  });
+}
 
 // Función auxiliar para construir árbol de subcategorías (reutilizable)
 async function buildSubcategoryTree(subcategories, parentId, categoryId, includeHidden = false, includeDocs = false) {
@@ -148,54 +228,181 @@ async function loadDocsStructure() {
 
     return structure;
   } catch (error) {
-    console.error('Error loading docs structure:', error);
+    logError('loadDocsStructure', error);
     return [];
   }
 }
 
 // ===== RUTAS PÚBLICAS =====
 
-// Ruta principal
+// Ruta principal - Landing Page
 app.get('/', async (req, res) => {
-  const structure = await loadDocsStructure();
-  
-  if (!structure || structure.length === 0) {
-    const pageMetadata = generatePageMetadata({
-      title: 'Documentación',
+  try {
+    const structure = await loadDocsStructure();
+    const landingContent = await settingsDb.get('landing_page_content') || '# Bienvenido a la documentación';
+    const htmlContent = md.render(landingContent);
+    
+    await renderWithMetadata(res, 'landing', {
+      structure,
+      content: htmlContent,
+      rawContent: landingContent,
+      title: 'HexServers Docs',
+      currentPath: null
+    }, {
+      title: 'Inicio',
       description: 'Bienvenido a la documentación de HexServers'
     });
+  } catch (error) {
+    logError('Landing Page Load', error);
+    res.status(500).send('Error al cargar la página');
+  }
+});
 
-    return res.render('index', {
-      structure: [],
-      content: '<h1>Bienvenido a la documentación</h1><p>No hay guías disponibles aún.</p>',
-      title: 'Documentación',
+// Ruta para mostrar una categoría (redirige al primer documento disponible)
+app.get('/docs/:category', async (req, res) => {
+  const { category } = req.params;
+  const structure = await loadDocsStructure();
+
+  try {
+    // Buscar la categoría por slug
+    const categoryData = structure.find(cat => cat.slug === category);
+    
+    if (!categoryData) {
+      const pageMetadata = generatePageMetadata({
+        title: 'Categoría no encontrada',
+        description: 'La categoría que buscas no existe'
+      });
+
+      return res.status(404).render('index', {
+        structure,
+        content: '<h1>Categoría no encontrada</h1><p>La categoría que buscas no existe.</p>',
+        title: 'Error 404',
+        currentPath: null,
+        metadata: pageMetadata,
+        baseMetadata: getBaseMetadata()
+      });
+    }
+
+    // Buscar la primera subcategoría visible con documentos
+    const firstSubcategory = categoryData.subcategories?.find(sub => !sub.is_hidden);
+    
+    if (firstSubcategory && firstSubcategory.guides && firstSubcategory.guides.length > 0) {
+      const firstGuide = firstSubcategory.guides[0];
+      return res.redirect(`/docs/${category}/${firstSubcategory.slug}/${firstGuide.slug}`);
+    }
+
+    // Si no hay guías, mostrar mensaje
+    const pageMetadata = generatePageMetadata({
+      title: categoryData.display_name,
+      description: `Documentación de ${categoryData.display_name}`
+    });
+
+    res.render('index', {
+      structure,
+      content: `<h1>${categoryData.display_name}</h1><p>No hay guías disponibles en esta categoría.</p>`,
+      title: categoryData.display_name,
+      currentPath: category,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
+    });
+  } catch (error) {
+    console.error('Error loading category:', error);
+    const pageMetadata = generatePageMetadata({
+      title: 'Error',
+      description: 'Hubo un error al cargar la categoría'
+    });
+
+    res.status(500).render('index', {
+      structure,
+      content: '<h1>Error</h1><p>Hubo un error al cargar la categoría.</p>',
+      title: 'Error',
       currentPath: null,
       metadata: pageMetadata,
       baseMetadata: getBaseMetadata()
     });
   }
+});
 
-  // Mostrar la primera guía disponible
-  const firstCategory = structure[0];
-  const firstSubcategory = firstCategory.subcategories[0];
-  const firstGuide = firstSubcategory?.guides[0];
+// Ruta para mostrar una subcategoría (redirige al primer documento)
+app.get('/docs/:category/:subcategory', async (req, res) => {
+  const { category, subcategory } = req.params;
+  const structure = await loadDocsStructure();
 
-  if (firstGuide) {
-    return res.redirect(`/docs/${firstGuide.path}`);
+  try {
+    // Buscar la categoría por slug
+    const categoryData = structure.find(cat => cat.slug === category);
+    
+    if (!categoryData) {
+      const pageMetadata = generatePageMetadata({
+        title: 'Categoría no encontrada',
+        description: 'La categoría que buscas no existe'
+      });
+
+      return res.status(404).render('index', {
+        structure,
+        content: '<h1>Categoría no encontrada</h1>',
+        title: 'Error 404',
+        currentPath: null,
+        metadata: pageMetadata,
+        baseMetadata: getBaseMetadata()
+      });
+    }
+
+    // Buscar la subcategoría por slug
+    const subcategoryData = categoryData.subcategories?.find(sub => sub.slug === subcategory);
+    
+    if (!subcategoryData) {
+      const pageMetadata = generatePageMetadata({
+        title: 'Subcategoría no encontrada',
+        description: 'La subcategoría que buscas no existe'
+      });
+
+      return res.status(404).render('index', {
+        structure,
+        content: '<h1>Subcategoría no encontrada</h1>',
+        title: 'Error 404',
+        currentPath: category,
+        metadata: pageMetadata,
+        baseMetadata: getBaseMetadata()
+      });
+    }
+
+    // Redirigir al primer documento de la subcategoría
+    if (subcategoryData.guides && subcategoryData.guides.length > 0) {
+      const firstGuide = subcategoryData.guides[0];
+      return res.redirect(`/docs/${category}/${subcategory}/${firstGuide.slug}`);
+    }
+
+    // Si no hay guías, mostrar mensaje
+    const pageMetadata = generatePageMetadata({
+      title: subcategoryData.display_name,
+      description: `Documentación de ${subcategoryData.display_name}`
+    });
+
+    res.render('index', {
+      structure,
+      content: `<h1>${subcategoryData.display_name}</h1><p>No hay guías disponibles en esta subcategoría.</p>`,
+      title: subcategoryData.display_name,
+      currentPath: `${category}/${subcategory}`,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
+    });
+  } catch (error) {
+    console.error('Error loading subcategory:', error);
+    const pageMetadata = generatePageMetadata({
+      title: 'Error',
+      description: 'Hubo un error al cargar la subcategoría'
+    });
+
+    res.status(500).render('index', {
+      structure,
+      content: '<h1>Error</h1><p>Hubo un error al cargar la subcategoría.</p>',
+      title: 'Error',
+      currentPath: category,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
+    });
   }
-
-  const pageMetadata = generatePageMetadata({
-    title: 'Documentación'
-  });
-
-  res.render('index', {
-    structure,
-    content: '<h1>Bienvenido a la documentación</h1>',
-    title: 'Documentación',
-    currentPath: null,
-    metadata: pageMetadata,
-    baseMetadata: getBaseMetadata()
-  });
 });
 
 // Ruta para mostrar una guía específica
@@ -336,8 +543,29 @@ app.get('/admin/login', requireGuest, (req, res) => {
   });
 });
 
+// Rate limiter para login (máximo 5 intentos cada 15 minutos)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo 5 intentos
+  message: 'Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo en 15 minutos.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const pageMetadata = generatePageMetadata({
+      title: 'Login - Admin',
+      description: 'Panel de administración de HexServers Docs',
+      robots: 'noindex, nofollow'
+    });
+    res.status(429).render('admin/login', { 
+      error: 'Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo en 15 minutos.',
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
+    });
+  }
+});
+
 // Login POST
-app.post('/admin/login', requireGuest, async (req, res) => {
+app.post('/admin/login', loginLimiter, requireGuest, async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -358,7 +586,7 @@ app.post('/admin/login', requireGuest, async (req, res) => {
     
     res.redirect('/admin');
   } catch (error) {
-    console.error('Login error:', error);
+    logError('Login', error);
     res.render('admin/login', { error: 'Error al iniciar sesión' });
   }
 });
@@ -378,18 +606,14 @@ app.get('/admin', requireAuth, async (req, res) => {
   const allCategories = await categoryDb.getAll();
   const allSubcategories = await subcategoryDb.getAll();
   
-  const pageMetadata = generatePageMetadata({
-    title: 'Dashboard - Admin',
-    description: 'Panel de administración de HexServers Docs'
-  });
-  
-  res.render('admin/dashboard', {
+  renderWithMetadata(res, 'admin/dashboard', {
     structure,
     docs: allDocs,
     categories: allCategories,
-    subcategories: allSubcategories,
-    metadata: pageMetadata,
-    baseMetadata: getBaseMetadata()
+    subcategories: allSubcategories
+  }, {
+    title: 'Dashboard - Admin',
+    description: 'Panel de administración de HexServers Docs'
   });
 });
 
@@ -404,15 +628,11 @@ app.get('/admin/categories', requireAuth, async (req, res) => {
     subcategories: allSubcategories.filter(sub => sub.category_id === cat.id)
   }));
   
-  const pageMetadata = generatePageMetadata({
+  renderWithMetadata(res, 'admin/categories', {
+    categories: categoriesWithSubs
+  }, {
     title: 'Categorías - Admin',
     description: 'Gestión de categorías y subcategorías'
-  });
-  
-  res.render('admin/categories', { 
-    categories: categoriesWithSubs,
-    metadata: pageMetadata,
-    baseMetadata: getBaseMetadata()
   });
 });
 
@@ -461,6 +681,23 @@ app.get('/admin/docs', requireAuth, async (req, res) => {
 app.post('/admin/docs/new', requireAuth, async (req, res) => {
   const { title, slug, description, content, subcategory_id, order_index } = req.body;
   
+  // Validación de entrada
+  if (!subcategory_id || !title || !slug) {
+    const error = 'Los campos subcategory_id, title y slug son requeridos';
+    if (req.headers['content-type'] === 'application/json') {
+      return res.status(400).json({ error });
+    }
+    return res.status(400).send(error);
+  }
+  
+  if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    const error = 'El slug solo puede contener letras minúsculas, números y guiones';
+    if (req.headers['content-type'] === 'application/json') {
+      return res.status(400).json({ error });
+    }
+    return res.status(400).send(error);
+  }
+  
   try {
     await docDb.create(subcategory_id, title, slug, description, content, order_index || 0);
     
@@ -471,7 +708,7 @@ app.post('/admin/docs/new', requireAuth, async (req, res) => {
       res.redirect('/admin/docs');
     }
   } catch (error) {
-    console.error('Error creating doc:', error);
+    logError('Create Document', error);
     
     let errorMessage = 'Error al crear documentación';
     
@@ -491,6 +728,23 @@ app.post('/admin/docs/new', requireAuth, async (req, res) => {
 // Editar documentación POST
 app.post('/admin/docs/edit/:id', requireAuth, async (req, res) => {
   const { title, slug, description, content, order_index, subcategory_id } = req.body;
+  
+  // Validación de entrada
+  if (!title || !slug) {
+    const error = 'Los campos title y slug son requeridos';
+    if (req.headers['content-type'] === 'application/json') {
+      return res.status(400).json({ error });
+    }
+    return res.status(400).send(error);
+  }
+  
+  if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    const error = 'El slug solo puede contener letras minúsculas, números y guiones';
+    if (req.headers['content-type'] === 'application/json') {
+      return res.status(400).json({ error });
+    }
+    return res.status(400).send(error);
+  }
   
   try {
     await docDb.update(req.params.id, title, slug, description, content, order_index || 0, subcategory_id);
@@ -576,11 +830,20 @@ app.get('/api/admin/categories', requireAuth, async (req, res) => {
 app.post('/api/admin/categories', requireAuth, async (req, res) => {
   const { name, display_name, slug, icon, order_index, is_hidden, icon_type } = req.body;
   
+  // Validación de entrada
+  if (!name || !display_name || !slug) {
+    return res.status(400).json({ error: 'Los campos name, display_name y slug son requeridos' });
+  }
+  
+  if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ error: 'El slug solo puede contener letras minúsculas, números y guiones' });
+  }
+  
   try {
     const id = await categoryDb.create(name, display_name, slug, icon || 'fa-folder', order_index || 0, is_hidden ? 1 : 0, icon_type || 'fontawesome');
     res.json({ success: true, id });
   } catch (error) {
-    console.error('Error creating category:', error);
+    logError('Create Category', error);
     res.status(500).json({ error: 'Error al crear categoría' });
   }
 });
@@ -588,6 +851,15 @@ app.post('/api/admin/categories', requireAuth, async (req, res) => {
 // Actualizar categoría
 app.put('/api/admin/categories/:id', requireAuth, async (req, res) => {
   const { name, display_name, slug, icon, order_index, is_hidden, icon_type } = req.body;
+  
+  // Validación de entrada
+  if (!name || !display_name || !slug) {
+    return res.status(400).json({ error: 'Los campos name, display_name y slug son requeridos' });
+  }
+  
+  if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ error: 'El slug solo puede contener letras minúsculas, números y guiones' });
+  }
   
   try {
     await categoryDb.update(req.params.id, name, display_name, slug, icon, order_index, is_hidden ? 1 : 0, icon_type || 'fontawesome');
@@ -611,6 +883,15 @@ app.delete('/api/admin/categories/:id', requireAuth, async (req, res) => {
 app.post('/api/admin/subcategories', requireAuth, async (req, res) => {
   const { category_id, parent_subcategory_id, name, display_name, slug, icon, order_index, is_hidden, icon_type } = req.body;
   
+  // Validación de entrada
+  if (!category_id || !name || !display_name || !slug) {
+    return res.status(400).json({ error: 'Los campos category_id, name, display_name y slug son requeridos' });
+  }
+  
+  if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ error: 'El slug solo puede contener letras minúsculas, números y guiones' });
+  }
+  
   try {
     const id = await subcategoryDb.create(
       category_id, 
@@ -633,6 +914,15 @@ app.post('/api/admin/subcategories', requireAuth, async (req, res) => {
 // Actualizar subcategoría
 app.put('/api/admin/subcategories/:id', requireAuth, async (req, res) => {
   const { name, display_name, slug, icon, order_index, is_hidden, icon_type, parent_subcategory_id } = req.body;
+  
+  // Validación de entrada
+  if (!name || !display_name || !slug) {
+    return res.status(400).json({ error: 'Los campos name, display_name y slug son requeridos' });
+  }
+  
+  if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+    return res.status(400).json({ error: 'El slug solo puede contener letras minúsculas, números y guiones' });
+  }
   
   try {
     await subcategoryDb.update(
@@ -758,6 +1048,23 @@ app.get('/admin/users', requireAuth, async (req, res) => {
 app.post('/api/admin/users', requireAuth, async (req, res) => {
   const { username, email, password } = req.body;
   
+  // Validación de entrada
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Los campos username y password son requeridos' });
+  }
+  
+  if (username.length < 3) {
+    return res.status(400).json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
+  }
+  
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+  
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'El email no es válido' });
+  }
+  
   try {
     const existingUser = await userDb.findByUsername(username);
     if (existingUser) {
@@ -767,7 +1074,7 @@ app.post('/api/admin/users', requireAuth, async (req, res) => {
     await userDb.create(username, password, email);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error creating user:', error);
+    logError('Create User', error);
     res.status(500).json({ error: 'Error al crear usuario' });
   }
 });
@@ -802,23 +1109,115 @@ app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
   }
 });
 
+// ===== RUTAS ADMIN - LANDING PAGE =====
+
+// Vista de edición de landing page
+app.get('/admin/landing', requireAuth, async (req, res) => {
+  const landingContent = await settingsDb.get('landing_page_content') || '';
+  
+  const pageMetadata = generatePageMetadata({
+    title: 'Landing Page - Admin',
+    description: 'Editar contenido de la página de inicio',
+    robots: 'noindex, nofollow'
+  });
+  
+  res.render('admin/landing', { 
+    content: landingContent,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
+});
+
+// Guardar contenido de landing page
+app.post('/api/admin/landing', requireAuth, async (req, res) => {
+  const { content } = req.body;
+  
+  try {
+    await settingsDb.set('landing_page_content', content);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving landing page:', error);
+    res.status(500).json({ error: 'Error al guardar la landing page' });
+  }
+});
+
+// ===== RUTAS ADMIN - CONFIGURACIÓN =====
+
+// Vista de configuración
+app.get('/admin/settings', requireAuth, async (req, res) => {
+  try {
+    const settings = {
+      logo_type: await settingsDb.get('logo_type') || 'text',
+      logo_text: await settingsDb.get('logo_text') || 'HexServers Docs',
+      logo_url: await settingsDb.get('logo_url') || ''
+    };
+
+    const pageMetadata = generatePageMetadata({
+      title: 'Configuración - Admin',
+      description: 'Configuración del sitio',
+      robots: 'noindex, nofollow'
+    });
+
+    res.render('admin/settings', {
+      settings,
+      metadata: pageMetadata,
+      baseMetadata: getBaseMetadata()
+    });
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    res.status(500).send('Error al cargar configuración');
+  }
+});
+
+// Guardar configuración del logo
+app.post('/api/admin/settings/logo', requireAuth, async (req, res) => {
+  const { logo_type, logo_text, logo_url } = req.body;
+  
+  try {
+    await settingsDb.set('logo_type', logo_type);
+    await settingsDb.set('logo_text', logo_text || 'HexServers Docs');
+    await settingsDb.set('logo_url', logo_url || '');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving logo settings:', error);
+    res.status(500).json({ error: 'Error al guardar configuración del logo' });
+  }
+});
+
+// Descargar respaldo de base de datos
+app.get('/api/admin/backup/download', requireAuth, (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const dbPath = path.join(__dirname, 'hexservers.db');
+  
+  try {
+    if (fs.existsSync(dbPath)) {
+      res.download(dbPath, `hexservers-backup-${new Date().toISOString().split('T')[0]}.db`);
+    } else {
+      res.status(404).json({ error: 'Base de datos no encontrada' });
+    }
+  } catch (error) {
+    console.error('Error downloading backup:', error);
+    res.status(500).json({ error: 'Error al descargar respaldo' });
+  }
+});
+
 // Inicializar base de datos y servidor
 (async () => {
   try {
     await initDatabase();
     await createDefaultAdmin();
-    console.log('✅ Base de datos inicializada');
+    logInfo('Base de datos inicializada');
     
     app.listen(PORT, () => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`🔐 Panel admin: http://localhost:${PORT}/admin`);
+      logInfo(`Servidor corriendo en http://localhost:${PORT}`);
+      logInfo(`Panel admin: http://localhost:${PORT}/admin`);
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`👤 Usuario: admin | Contraseña: admin123`);
-        console.log('⚠️  CAMBIAR CREDENCIALES ANTES DE PRODUCCION');
+        console.log(`Servicio iniciado correctamente`);
       }
     });
   } catch (error) {
-    console.error('Error al inicializar:', error);
+    logError('Server Initialization', error);
     process.exit(1);
   }
 })();
