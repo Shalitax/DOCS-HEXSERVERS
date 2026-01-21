@@ -46,18 +46,26 @@
     applyTheme(savedTheme);
   }
 
-  // Ejecutar cuando el DOM esté listo
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTheme);
-  } else {
-    initTheme();
-  }
-
-  // Configurar el botón de toggle cuando esté disponible
-  window.addEventListener('load', function() {
+  // Función para configurar el botón con reintentos
+  function setupToggleButton() {
     const toggleButton = document.getElementById('theme-toggle');
     if (toggleButton) {
       toggleButton.addEventListener('click', toggleTheme);
+      console.log('Theme toggle button configured');
+    } else {
+      // Reintentar después de 100ms si el botón no existe aún
+      setTimeout(setupToggleButton, 100);
     }
-  });
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      initTheme();
+      setupToggleButton();
+    });
+  } else {
+    initTheme();
+    setupToggleButton();
+  }
 })();
