@@ -119,20 +119,32 @@ function hideConfirmModal() {
 
 /**
  * Mostrar modal de alerta
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje del modal
+ * @param {string} title - Título del modal o mensaje (si solo se pasan 2 parámetros)
+ * @param {string} message - Mensaje del modal o tipo (si solo se pasan 2 parámetros)
  * @param {string} type - Tipo: 'success', 'error', 'info'
  */
-function showAlertModal(title, message, type = 'success') {
+function showAlertModal(title, message, type) {
   // Títulos por defecto en español
   const defaultTitles = {
-    'success': '¡Guardado!',
+    'success': '¡Éxito!',
     'error': 'Error',
     'info': 'Información'
   };
   
-  // Usar título por defecto si no se proporciona o es genérico
-  const finalTitle = title || defaultTitles[type] || 'Aviso';
+  let finalTitle, finalMessage, finalType;
+  
+  // Detectar si se llamó con 2 parámetros (mensaje, tipo) o 3 (título, mensaje, tipo)
+  if (arguments.length === 2 || (arguments.length === 3 && ['success', 'error', 'info'].includes(message))) {
+    // Formato antiguo: showAlertModal(message, type)
+    finalMessage = title;
+    finalType = message || 'success';
+    finalTitle = defaultTitles[finalType] || 'Aviso';
+  } else {
+    // Formato nuevo: showAlertModal(title, message, type)
+    finalTitle = title || defaultTitles[type || 'success'];
+    finalMessage = message;
+    finalType = type || 'success';
+  }
   
   const modal = document.getElementById('alertModal');
   
@@ -144,16 +156,16 @@ function showAlertModal(title, message, type = 'success') {
     const icon = iconEl.querySelector('i');
     
     if (titleEl) titleEl.textContent = finalTitle;
-    if (messageEl) messageEl.textContent = message;
+    if (messageEl) messageEl.textContent = finalMessage;
     
     // Configurar icono y colores según el tipo
-    if (type === 'success') {
+    if (finalType === 'success') {
       iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
       icon.className = 'fas fa-check-circle text-2xl text-green-400';
-    } else if (type === 'error') {
+    } else if (finalType === 'error') {
       iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
       icon.className = 'fas fa-times-circle text-2xl text-red-400';
-    } else if (type === 'info') {
+    } else if (finalType === 'info') {
       iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-blue-500/20';
       icon.className = 'fas fa-info-circle text-2xl text-blue-400';
     }
@@ -167,16 +179,16 @@ function showAlertModal(title, message, type = 'success') {
     tempModal.innerHTML = `
       <div class="glass rounded-xl p-8 border border-white/20 max-w-md w-full mx-4 animate-slide-up shadow-2xl">
         <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-          type === 'success' ? 'bg-green-500/20' : type === 'error' ? 'bg-red-500/20' : 'bg-blue-500/20'
+          finalType === 'success' ? 'bg-green-500/20' : finalType === 'error' ? 'bg-red-500/20' : 'bg-blue-500/20'
         }">
           <i class="fas ${
-            type === 'success' ? 'fa-check-circle text-green-400' : 
-            type === 'error' ? 'fa-times-circle text-red-400' : 
+            finalType === 'success' ? 'fa-check-circle text-green-400' : 
+            finalType === 'error' ? 'fa-times-circle text-red-400' : 
             'fa-info-circle text-blue-400'
           } text-2xl"></i>
         </div>
         <h3 class="text-xl font-bold mb-3 text-center">${finalTitle}</h3>
-        <p class="text-lg text-gray-200 mb-6 text-center">${message}</p>
+        <p class="text-lg text-gray-200 mb-6 text-center">${finalMessage}</p>
         <button onclick="this.closest('#tempAlertModal').remove()" class="w-full bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold">
           Cerrar
         </button>
@@ -192,7 +204,7 @@ function showAlertModal(title, message, type = 'success') {
     };
     
     // Auto-cerrar después de 1.5 segundos si es success
-    if (type === 'success') {
+    if (finalType === 'success') {
       setTimeout(() => {
         tempModal.remove();
         location.reload();

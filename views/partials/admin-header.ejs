@@ -5,6 +5,11 @@
         <%- headerTitle || 'Panel de Administración' %>
       </h1>
       <div class="flex items-center space-x-4">
+        <!-- Botón Dark/Light Mode -->
+        <button id="theme-toggle" class="glass px-3 py-2 rounded-lg hover:bg-white/20 transition-all" title="Cambiar tema">
+          <i class="fas fa-moon text-white" id="theme-icon"></i>
+        </button>
+        
         <% if (typeof headerButtons !== 'undefined') { %>
           <%- headerButtons %>
         <% } %>
