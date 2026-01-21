@@ -46,32 +46,18 @@
     applyTheme(savedTheme);
   }
 
-  // Función para configurar el botón con reintentos
-  function setupToggleButton(attempts = 0) {
-    const toggleButton = document.getElementById('theme-toggle');
-    console.log('Setup attempt', attempts, 'Button found:', !!toggleButton);
-    
-    if (toggleButton) {
-      // Remover listener anterior si existe
-      toggleButton.removeEventListener('click', toggleTheme);
-      toggleButton.addEventListener('click', toggleTheme);
-      console.log('Theme toggle button configured successfully');
-    } else if (attempts < 20) {
-      // Reintentar hasta 20 veces (2 segundos total)
-      setTimeout(() => setupToggleButton(attempts + 1), 100);
-    } else {
-      console.error('Theme toggle button not found after 20 attempts');
-    }
-  }
-
   // Ejecutar cuando el DOM esté listo
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      initTheme();
-      setupToggleButton();
-    });
+    document.addEventListener('DOMContentLoaded', initTheme);
   } else {
     initTheme();
-    setupToggleButton();
   }
+
+  // Configurar el botón de toggle cuando esté disponible
+  window.addEventListener('load', function() {
+    const toggleButton = document.getElementById('theme-toggle');
+    if (toggleButton) {
+      toggleButton.addEventListener('click', toggleTheme);
+    }
+  });
 })();
