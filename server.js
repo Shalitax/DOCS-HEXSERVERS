@@ -237,15 +237,15 @@ function countDocumentsRecursive(subcategories) {
   return count;
 }
 
-async function loadDocsStructure() {
+async function loadDocsStructure(includeHidden = false) {
   try {
     const categories = await categoryDb.getAll();
     const subcategories = await subcategoryDb.getAll();
     const structure = [];
 
     for (const category of categories) {
-      // Saltar categorías ocultas
-      if (category.is_hidden) continue;
+      // Saltar categorías ocultas si no se requiere incluirlas
+      if (!includeHidden && category.is_hidden) continue;
       
       const categoryData = {
         id: category.id,
@@ -264,7 +264,7 @@ async function loadDocsStructure() {
         subcategories,
         null,
         category.id,
-        false,
+        includeHidden,
         'full'
       );
 
@@ -286,7 +286,8 @@ async function loadDocsStructure() {
 // Ruta principal - Landing Page
 app.get('/', async (req, res) => {
   try {
-    const structure = await loadDocsStructure();
+    const isAdmin = res.locals.isAuthenticated === true;
+    const structure = await loadDocsStructure(isAdmin);
     const landingContent = await settingsDb.get('landing_page_content') || '# Bienvenido a la documentación';
     const htmlContent = md.render(landingContent);
     
@@ -309,7 +310,8 @@ app.get('/', async (req, res) => {
 // Ruta para mostrar una categoría (redirige al primer documento disponible)
 app.get('/docs/:category', async (req, res) => {
   const { category } = req.params;
-  const structure = await loadDocsStructure();
+  const isAdmin = res.locals.isAuthenticated === true;
+  const structure = await loadDocsStructure(isAdmin);
 
   try {
     // Buscar la categoría por slug
@@ -374,7 +376,8 @@ app.get('/docs/:category', async (req, res) => {
 // Ruta para mostrar una subcategoría (redirige al primer documento)
 app.get('/docs/:category/:subcategory', async (req, res) => {
   const { category, subcategory } = req.params;
-  const structure = await loadDocsStructure();
+  const isAdmin = res.locals.isAuthenticated === true;
+  const structure = await loadDocsStructure(isAdmin);
 
   try {
     // Buscar la categoría por slug
@@ -456,7 +459,8 @@ app.get('/docs/:category/:subcategory', async (req, res) => {
 // Ruta para mostrar una guía específica
 app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
   const { category, subcategory, guide } = req.params;
-  const structure = await loadDocsStructure();
+  const isAdmin = res.locals.isAuthenticated === true;
+  const structure = await loadDocsStructure(isAdmin);
 
   try {
     const doc = await docDb.getBySlug(category, subcategory, guide);
@@ -661,7 +665,7 @@ app.get('/admin/logout', (req, res) => {
 
 // Panel principal
 app.get('/admin', requireAuth, async (req, res) => {
-  const structure = await loadDocsStructure();
+  const structure = await loadDocsStructure(true);
   const allDocs = await docDb.getAll();
   const allCategories = await categoryDb.getAll();
   const allSubcategories = await subcategoryDb.getAll();

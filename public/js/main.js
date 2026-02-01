@@ -498,7 +498,6 @@ function showCategoryModal(id = null, name = '', displayName = '', slug = '', ic
   
   // Verificar que el modal existe
   if (!modal) {
-    console.warn('Category modal not found on this page');
     return;
   }
   
@@ -568,7 +567,6 @@ function showSubcategoryModal(categoryId, categoryName, parentSubcategoryId = nu
   
   // Verificar que el modal existe
   if (!modal) {
-    console.warn('Subcategory modal not found on this page');
     return;
   }
   
