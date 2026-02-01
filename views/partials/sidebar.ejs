@@ -31,7 +31,9 @@
     
     <% if (structure && structure.length > 0) { %>
       <% structure.forEach((category, catIndex) => { %>
-        <div class="mb-6 animate-slide-in" style="animation-delay: <%= catIndex * 0.1 %>s" data-category-id="<%= category.id %>">
+        <div class="mb-6 animate-slide-in category-item transition-all duration-300" style="animation-delay: <%= catIndex * 0.1 %>s" data-category-id="<%= category.id %>">
+          <!-- Separador superior (oculto por defecto) -->
+          <div class="category-separator hidden h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mb-4"></div>
           <div class="flex items-center justify-between mb-3 group relative">
             <button onclick="toggleCategory(<%= category.id %>)" class="flex items-center flex-1 text-left font-display">
               <i class="fas fa-chevron-down mr-2 text-sm transition-transform category-chevron-<%= category.id %>" id="chevron-<%= category.id %>"></i>

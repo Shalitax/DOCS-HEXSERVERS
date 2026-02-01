@@ -93,6 +93,11 @@ function filterSidebarContent(query) {
           }
         });
       });
+      
+      // Aplicar visibilidad inicial
+      if (typeof updateCategoryVisibility === 'function') {
+        updateCategoryVisibility();
+      }
     }, 10);
     return;
   }
@@ -166,6 +171,8 @@ function filterSidebarContent(query) {
 function toggleCategory(categoryId) {
   const content = document.getElementById(`category-content-${categoryId}`);
   const chevron = document.getElementById(`chevron-${categoryId}`);
+  const currentCategory = document.querySelector(`[data-category-id="${categoryId}"]`);
+  const allCategories = document.querySelectorAll('.category-item');
   
   if (content.style.maxHeight && content.style.maxHeight !== '0px') {
     // Colapsar
@@ -173,13 +180,64 @@ function toggleCategory(categoryId) {
     content.style.opacity = '0';
     chevron.style.transform = 'rotate(-90deg)';
     localStorage.setItem(`category-${categoryId}`, 'collapsed');
+    
+    // Restaurar visibilidad de todas las categorías
+    updateCategoryVisibility();
   } else {
     // Expandir
     content.style.maxHeight = content.scrollHeight + 'px';
     content.style.opacity = '1';
     chevron.style.transform = 'rotate(0deg)';
     localStorage.setItem(`category-${categoryId}`, 'expanded');
+    
+    // Actualizar visibilidad
+    updateCategoryVisibility();
   }
+}
+
+// Función para actualizar separadores y opacidad de categorías
+function updateCategoryVisibility() {
+  const allCategories = document.querySelectorAll('.category-item');
+  let hasExpandedCategory = false;
+  let expandedCategoryId = null;
+  
+  // Detectar si hay alguna categoría expandida
+  allCategories.forEach(cat => {
+    const catId = cat.dataset.categoryId;
+    const content = document.getElementById(`category-content-${catId}`);
+    if (content && content.style.maxHeight && content.style.maxHeight !== '0px') {
+      hasExpandedCategory = true;
+      expandedCategoryId = catId;
+    }
+  });
+  
+  // Aplicar estilos según el estado
+  allCategories.forEach(cat => {
+    const catId = cat.dataset.categoryId;
+    const separator = cat.querySelector('.category-separator');
+    const content = document.getElementById(`category-content-${catId}`);
+    const isExpanded = content && content.style.maxHeight && content.style.maxHeight !== '0px';
+    
+    if (hasExpandedCategory) {
+      // Mostrar separador en la categoría expandida
+      if (isExpanded && separator) {
+        separator.classList.remove('hidden');
+      } else if (separator) {
+        separator.classList.add('hidden');
+      }
+      
+      // Reducir opacidad de categorías no expandidas
+      if (!isExpanded) {
+        cat.style.opacity = '0.4';
+      } else {
+        cat.style.opacity = '1';
+      }
+    } else {
+      // Sin categorías expandidas: todo normal
+      if (separator) separator.classList.add('hidden');
+      cat.style.opacity = '1';
+    }
+  });
 }
 
 function toggleSubcategory(subcategoryId) {
