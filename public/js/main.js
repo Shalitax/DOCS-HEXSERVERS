@@ -1,7 +1,7 @@
 // Funcionalidad del buscador
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
-let searchTimeout;
+let searchTimeout = null;
 
 // ===== Sistema de Acordeón para Categorías y Subcategorías =====
 
@@ -250,51 +250,53 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-searchInput.addEventListener('input', (e) => {
-  clearTimeout(searchTimeout);
-  const query = e.target.value.trim();
-  
-  if (query.length < 2) {
-    searchResults.classList.add('hidden');
-    return;
-  }
-  
-  searchTimeout = setTimeout(async () => {
-    try {
-      // Buscar en la base de datos a través del API (incluye categorías ocultas)
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const results = await response.json();
-      
-      if (results.length === 0) {
-        searchResults.innerHTML = '<div class="p-4 text-gray-400 text-sm">No se encontraron resultados</div>';
-        searchResults.classList.remove('hidden');
-        return;
-      }
-      
-      const html = results.map(result => `
-        <a href="${result.url}" class="block p-4 hover:bg-gray-900 transition-all duration-200 border-b border-white/5 last:border-b-0">
-          <div class="font-medium text-white">${result.title}</div>
-          <div class="text-xs text-gray-400 mt-1">
-            <i class="fas fa-folder mr-1"></i>${result.category} 
-            <i class="fas fa-chevron-right mx-1 text-xs"></i> 
-            ${result.subcategory}
-          </div>
-        </a>
-      `).join('');
-      
-      searchResults.innerHTML = html;
-      searchResults.classList.remove('hidden');
-    } catch (error) {
-      console.error('Error en búsqueda:', error);
-      searchResults.innerHTML = '<div class="p-4 text-red-400 text-sm">Error al buscar</div>';
-      searchResults.classList.remove('hidden');
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+    
+    if (query.length < 2) {
+      searchResults.classList.add('hidden');
+      return;
     }
-  }, 300);
-});
+    
+    searchTimeout = setTimeout(async () => {
+      try {
+        // Buscar en la base de datos a través del API (incluye categorías ocultas)
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const results = await response.json();
+        
+        if (results.length === 0) {
+          searchResults.innerHTML = '<div class="p-4 text-gray-400 text-sm">No se encontraron resultados</div>';
+          searchResults.classList.remove('hidden');
+          return;
+        }
+        
+        const html = results.map(result => `
+          <a href="${result.url}" class="block p-4 hover:bg-gray-900 transition-all duration-200 border-b border-white/5 last:border-b-0">
+            <div class="font-medium text-white">${result.title}</div>
+            <div class="text-xs text-gray-400 mt-1">
+              <i class="fas fa-folder mr-1"></i>${result.category} 
+              <i class="fas fa-chevron-right mx-1 text-xs"></i> 
+              ${result.subcategory}
+            </div>
+          </a>
+        `).join('');
+        
+        searchResults.innerHTML = html;
+        searchResults.classList.remove('hidden');
+      } catch (error) {
+        console.error('Error en búsqueda:', error);
+        searchResults.innerHTML = '<div class="p-4 text-red-400 text-sm">Error al buscar</div>';
+        searchResults.classList.remove('hidden');
+      }
+    }, 300);
+  });
+}
 
 // Cerrar resultados al hacer clic fuera
 document.addEventListener('click', (e) => {
-  if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+  if (searchInput && searchResults && !searchInput.contains(e.target) && !searchResults.contains(e.target)) {
     searchResults.classList.add('hidden');
   }
 });
@@ -494,40 +496,62 @@ function showCategoryModal(id = null, name = '', displayName = '', slug = '', ic
   const title = document.getElementById('categoryModalTitle');
   const form = document.getElementById('categoryForm');
   
-  // Reset form
-  document.getElementById('categoryId').value = id || '';
-  document.getElementById('categoryName').value = name;
-  document.getElementById('categoryDisplayName').value = displayName;
-  document.getElementById('categorySlug').value = slug;
-  document.getElementById('categoryIconType').value = iconType;
-  document.getElementById('categoryOrder').value = order;
-  document.getElementById('categoryHidden').checked = isHidden;
-  
-  // Manejar el tipo de icono
-  if (iconType === 'image') {
-    document.getElementById('categoryIcon').value = '';
-    document.getElementById('categoryIconImage').value = icon;
-    document.getElementById('categoryIconFAGroup').classList.add('hidden');
-    document.getElementById('categoryIconImageGroup').classList.remove('hidden');
-  } else {
-    document.getElementById('categoryIcon').value = icon;
-    document.getElementById('categoryIconImage').value = '';
-    document.getElementById('categoryIconFAGroup').classList.remove('hidden');
-    document.getElementById('categoryIconImageGroup').classList.add('hidden');
+  // Verificar que el modal existe
+  if (!modal) {
+    console.warn('Category modal not found on this page');
+    return;
   }
   
-  title.textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
+  // Campos del formulario
+  const idField = document.getElementById('categoryId');
+  const nameField = document.getElementById('categoryName');
+  const displayNameField = document.getElementById('categoryDisplayName');
+  const slugField = document.getElementById('categorySlug');
+  const iconTypeField = document.getElementById('categoryIconType');
+  const orderField = document.getElementById('categoryOrder');
+  const hiddenField = document.getElementById('categoryHidden');
+  
+  // Reset form
+  if (idField) idField.value = id || '';
+  if (nameField) nameField.value = name;
+  if (displayNameField) displayNameField.value = displayName;
+  if (slugField) slugField.value = slug;
+  if (iconTypeField) iconTypeField.value = iconType;
+  if (orderField) orderField.value = order;
+  if (hiddenField) hiddenField.checked = isHidden;
+  
+  // Manejar el tipo de icono (solo si existen los elementos)
+  const iconField = document.getElementById('categoryIcon');
+  const iconImageField = document.getElementById('categoryIconImage');
+  const iconFAGroup = document.getElementById('categoryIconFAGroup');
+  const iconImageGroup = document.getElementById('categoryIconImageGroup');
+  
+  if (iconType === 'image') {
+    if (iconField) iconField.value = '';
+    if (iconImageField) iconImageField.value = icon;
+    if (iconFAGroup) iconFAGroup.classList.add('hidden');
+    if (iconImageGroup) iconImageGroup.classList.remove('hidden');
+  } else {
+    if (iconField) iconField.value = icon;
+    if (iconImageField) iconImageField.value = '';
+    if (iconFAGroup) iconFAGroup.classList.remove('hidden');
+    if (iconImageGroup) iconImageGroup.classList.add('hidden');
+  }
+  
+  if (title) title.textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
   modal.classList.remove('hidden');
   
   // Auto-generar slug
-  document.getElementById('categoryName').addEventListener('input', (e) => {
-    if (!id) {
-      document.getElementById('categorySlug').value = e.target.value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-    }
-  });
+  if (nameField && slugField) {
+    nameField.addEventListener('input', (e) => {
+      if (!id) {
+        slugField.value = e.target.value
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
+    });
+  }
 }
 
 function editCategory(id, name, displayName, slug, icon, order, isHidden, iconType = 'fontawesome') {
@@ -542,42 +566,66 @@ function showSubcategoryModal(categoryId, categoryName, parentSubcategoryId = nu
   const modal = document.getElementById('subcategoryModal');
   const title = document.getElementById('subcategoryModalTitle');
   
-  document.getElementById('subcategoryCategoryId').value = categoryId;
-  document.getElementById('subcategoryParentId').value = parentSubcategoryId || '';
-  document.getElementById('subcategoryId').value = id || '';
-  document.getElementById('subcategoryName').value = name;
-  document.getElementById('subcategoryDisplayName').value = displayName;
-  document.getElementById('subcategorySlug').value = slug;
-  document.getElementById('subcategoryIconType').value = iconType;
-  document.getElementById('subcategoryOrder').value = order;
-  document.getElementById('subcategoryHidden').checked = isHidden;
+  // Verificar que el modal existe
+  if (!modal) {
+    console.warn('Subcategory modal not found on this page');
+    return;
+  }
   
-  // Manejar el tipo de icono
+  // Campos requeridos
+  const categoryIdField = document.getElementById('subcategoryCategoryId');
+  const parentIdField = document.getElementById('subcategoryParentId');
+  const idField = document.getElementById('subcategoryId');
+  const nameField = document.getElementById('subcategoryName');
+  const displayNameField = document.getElementById('subcategoryDisplayName');
+  const slugField = document.getElementById('subcategorySlug');
+  const iconTypeField = document.getElementById('subcategoryIconType');
+  const orderField = document.getElementById('subcategoryOrder');
+  const hiddenField = document.getElementById('subcategoryHidden');
+  
+  if (categoryIdField) categoryIdField.value = categoryId;
+  if (parentIdField) parentIdField.value = parentSubcategoryId || '';
+  if (idField) idField.value = id || '';
+  if (nameField) nameField.value = name;
+  if (displayNameField) displayNameField.value = displayName;
+  if (slugField) slugField.value = slug;
+  if (iconTypeField) iconTypeField.value = iconType;
+  if (orderField) orderField.value = order;
+  if (hiddenField) hiddenField.checked = isHidden;
+  
+  // Manejar el tipo de icono (solo si existen los elementos)
+  const iconField = document.getElementById('subcategoryIcon');
+  const iconImageField = document.getElementById('subcategoryIconImage');
+  const iconFAGroup = document.getElementById('subcategoryIconFAGroup');
+  const iconImageGroup = document.getElementById('subcategoryIconImageGroup');
+  
   if (iconType === 'image') {
-    document.getElementById('subcategoryIcon').value = '';
-    document.getElementById('subcategoryIconImage').value = icon;
-    document.getElementById('subcategoryIconFAGroup').classList.add('hidden');
-    document.getElementById('subcategoryIconImageGroup').classList.remove('hidden');
+    if (iconField) iconField.value = '';
+    if (iconImageField) iconImageField.value = icon;
+    if (iconFAGroup) iconFAGroup.classList.add('hidden');
+    if (iconImageGroup) iconImageGroup.classList.remove('hidden');
   } else {
-    document.getElementById('subcategoryIcon').value = icon;
-    document.getElementById('subcategoryIconImage').value = '';
-    document.getElementById('subcategoryIconFAGroup').classList.remove('hidden');
-    document.getElementById('subcategoryIconImageGroup').classList.add('hidden');
+    if (iconField) iconField.value = icon;
+    if (iconImageField) iconImageField.value = '';
+    if (iconFAGroup) iconFAGroup.classList.remove('hidden');
+    if (iconImageGroup) iconImageGroup.classList.add('hidden');
   }
   
   const levelText = parentSubcategoryId ? 'Sub-subcategoría' : 'Subcategoría';
-  title.textContent = id ? `Editar ${levelText}` : `Nueva ${levelText} en ${categoryName}`;
+  if (title) title.textContent = id ? `Editar ${levelText}` : `Nueva ${levelText} en ${categoryName}`;
   modal.classList.remove('hidden');
   
   // Auto-generar slug
-  document.getElementById('subcategoryName').addEventListener('input', (e) => {
-    if (!id) {
-      document.getElementById('subcategorySlug').value = e.target.value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-    }
-  });
+  if (nameField && slugField) {
+    nameField.addEventListener('input', (e) => {
+      if (!id) {
+        slugField.value = e.target.value
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+      }
+    });
+  }
 }
 
 function editSubcategory(id, name, displayName, slug, icon, order, categoryId, isHidden, iconType = 'fontawesome', parentSubcategoryId = null) {
