@@ -480,6 +480,138 @@
   color: #ca8a04 !important;
 }
 
+/* ===== Light Mode: Botones con gradiente ===== */
+
+/* Botones verdes */
+.light-mode .bg-gradient-to-r.from-green-600.to-green-800,
+.light-mode .bg-gradient-to-r.from-green-500.to-green-600 {
+  background-image: linear-gradient(to right, #22c55e, #16a34a) !important;
+}
+
+.light-mode .bg-gradient-to-r.from-green-600.to-green-800:hover,
+.light-mode .bg-gradient-to-r.from-green-500.to-green-600:hover,
+.light-mode .hover\:from-green-700:hover,
+.light-mode .hover\:from-green-600:hover {
+  background-image: linear-gradient(to right, #16a34a, #15803d) !important;
+}
+
+/* Botones rojos */
+.light-mode .bg-gradient-to-r.from-red-500.to-red-600 {
+  background-image: linear-gradient(to right, #ef4444, #dc2626) !important;
+}
+
+.light-mode .bg-gradient-to-r.from-red-500.to-red-600:hover {
+  background-image: linear-gradient(to right, #dc2626, #b91c1c) !important;
+}
+
+/* Botones azules */
+.light-mode .bg-gradient-to-r.from-blue-500.to-blue-600 {
+  background-image: linear-gradient(to right, #3b82f6, #2563eb) !important;
+}
+
+.light-mode .bg-gradient-to-r.from-blue-500.to-blue-600:hover {
+  background-image: linear-gradient(to right, #2563eb, #1d4ed8) !important;
+}
+
+/* ===== Light Mode: Modales ===== */
+
+/* Fondo del modal (overlay) */
+.light-mode .bg-black\/80 {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Contenido del modal - fondo blanco puro */
+.light-mode #adminConfirmModal .glass,
+.light-mode #adminAlertModal .glass,
+.light-mode #categoryModal .glass,
+.light-mode #subcategoryModal .glass,
+.light-mode #docModal .glass,
+.light-mode #userModal .glass {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Bordes de modales */
+.light-mode .border-white\/20,
+.light-mode .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Iconos de fondo en modales */
+.light-mode .bg-red-500\/20 {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.light-mode .bg-green-500\/20 {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+}
+
+.light-mode .bg-yellow-500\/20 {
+  background-color: rgba(234, 179, 8, 0.15) !important;
+}
+
+.light-mode .bg-blue-500\/20 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Hover en botones glass de modales */
+.light-mode .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ===== Light Mode: Inputs y Formularios ===== */
+
+/* Inputs en modales */
+.light-mode input[type="text"],
+.light-mode input[type="email"],
+.light-mode input[type="password"],
+.light-mode input[type="number"],
+.light-mode textarea,
+.light-mode select {
+  background-color: #f9fafb !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #111827 !important;
+}
+
+.light-mode input::placeholder,
+.light-mode textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+.light-mode input:focus,
+.light-mode textarea:focus,
+.light-mode select:focus {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1) !important;
+}
+
+/* Labels en modales */
+.light-mode label {
+  color: #374151 !important;
+}
+
+/* Checkboxes */
+.light-mode input[type="checkbox"] {
+  background-color: #f9fafb !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===== Light Mode: Cards y Paneles ===== */
+
+/* Hover en elementos interactivos */
+.light-mode .hover\:bg-red-500\/20:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.light-mode .hover\:bg-blue-500\/20:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.light-mode .hover\:bg-green-500\/20:hover {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
 /* Estilos del buscador y resultados */
 #search-results {
   transition: background-color 0.3s ease, border-color 0.3s ease;

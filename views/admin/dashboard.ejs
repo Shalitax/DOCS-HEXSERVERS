@@ -114,7 +114,7 @@
                   <a href="/admin/docs" class="glass px-3 py-2 rounded hover:bg-blue-500/20 transition-all text-blue-400">
                     <i class="fas fa-arrow-right"></i>
                   </a>
-                  <form method="POST" action="/admin/docs/delete/<%= doc.id %>" class="inline" onsubmit="event.preventDefault(); showConfirmModal('¿Eliminar este documento?', () => this.submit(), 'danger')">
+                  <form method="POST" action="/admin/docs/delete/<%= doc.id %>" class="inline" onsubmit="event.preventDefault(); const f = this; showConfirmModal('¿Eliminar documento?', 'Se eliminará este documento. Esta acción no se puede deshacer.', () => f.submit(), 'danger')">
                     <button type="submit" class="glass px-3 py-2 rounded hover:bg-red-500/20 transition-all text-red-400">
                       <i class="fas fa-trash"></i>
                     </button>

@@ -70,6 +70,7 @@ function showConfirmModal(title, message, onConfirm, type = 'warning') {
     
     confirmCallback = onConfirm;
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
   } else {
     // Fallback: crear modal temporal (admin-utils.js style)
     const tempModal = document.createElement('div');
@@ -128,6 +129,7 @@ function hideConfirmModal() {
   const modal = document.getElementById('adminConfirmModal');
   if (modal) {
     modal.classList.add('hidden');
+    modal.classList.remove('flex');
     confirmCallback = null;
   }
 }
@@ -194,6 +196,7 @@ function showAlertModal(title, message, type) {
     }
     
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
   } else {
     // Fallback: crear modal temporal (admin-utils.js style)
     const tempModal = document.createElement('div');
@@ -243,6 +246,7 @@ function hideAlertModal() {
   const modal = document.getElementById('adminAlertModal');
   if (modal) {
     modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
 }
 

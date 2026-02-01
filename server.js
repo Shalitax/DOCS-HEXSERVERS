@@ -478,9 +478,27 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
     }
 
     // Generar metadata para la página del documento
+    // Usar description si existe, sino limpiar el contenido de markdown
+    let metaDescription = doc.description;
+    if (!metaDescription || metaDescription.trim() === '') {
+      // Limpiar markdown del contenido para usar como descripción
+      metaDescription = doc.content
+        .replace(/^#+ .+$/gm, '') // Quitar títulos
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // Quitar negritas
+        .replace(/\*([^*]+)\*/g, '$1') // Quitar cursivas
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Quitar links, dejar texto
+        .replace(/<[^>]+>/g, '') // Quitar tags HTML
+        .replace(/```[\s\S]*?```/g, '') // Quitar bloques de código
+        .replace(/`[^`]+`/g, '') // Quitar código inline
+        .replace(/^\s*[-*]\s+/gm, '') // Quitar listas
+        .replace(/\n+/g, ' ') // Convertir saltos de línea en espacios
+        .replace(/\s+/g, ' ') // Normalizar espacios
+        .trim();
+    }
+    
     const pageMetadata = generatePageMetadata({
       title: doc.title,
-      description: doc.content.substring(0, 160) // Primeros 160 caracteres como descripción
+      description: metaDescription.substring(0, 160)
     });
 
     const htmlContent = md.render(doc.content);
@@ -504,6 +522,7 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
       title: doc.title,
       currentPath: `${category}/${subcategory}/${guide}`,
       docId: doc.id,
+      updatedAt: doc.updated_at,
       breadcrumb: breadcrumb,
       metadata: pageMetadata,
       baseMetadata: getBaseMetadata()
