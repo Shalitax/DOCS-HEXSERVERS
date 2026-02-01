@@ -25,32 +25,47 @@ function hideModal(modalId) {
  * @param {string} type - Tipo de modal: 'danger', 'warning', 'info'
  */
 function showConfirmModal(title, message, onConfirm, type = 'warning') {
-  const modal = document.getElementById('confirmModal');
+  const modal = document.getElementById('adminConfirmModal');
   
   // Si existe el modal en el DOM (main.js)
   if (modal) {
     const titleEl = document.getElementById('confirmTitle');
-    const messageEl = document.getElementById('confirmMessage');
-    const iconEl = document.getElementById('confirmIcon');
-    const icon = iconEl.querySelector('i');
-    const confirmBtn = document.getElementById('confirmButton');
+    const messageEl = document.getElementById('adminConfirmMessage');
+    const iconEl = document.getElementById('adminConfirmIcon');
+    const icon = iconEl ? iconEl.querySelector('i') : null;
+    const confirmBtn = document.getElementById('adminConfirmBtn');
     
-    if (titleEl) titleEl.textContent = title;
-    if (messageEl) messageEl.textContent = message;
+    // Si hay elemento de título, lo usamos; sino mostramos todo en el mensaje
+    if (titleEl) {
+      titleEl.textContent = title;
+      if (messageEl) messageEl.textContent = message;
+    } else if (messageEl) {
+      // Combinar título y mensaje si no hay elemento de título separado
+      messageEl.innerHTML = `<strong>${title}</strong><br/>${message}`;
+    }
     
     // Configurar icono y colores según el tipo
-    if (type === 'danger') {
-      iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
-      icon.className = 'fas fa-exclamation-triangle text-2xl text-red-400';
-      confirmBtn.className = 'flex-1 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-white font-semibold';
-    } else if (type === 'info') {
-      iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
-      icon.className = 'fas fa-info-circle text-2xl text-green-400';
-      confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
-    } else {
-      iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-yellow-500/20';
-      icon.className = 'fas fa-exclamation-circle text-2xl text-yellow-400';
-      confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
+    if (iconEl && icon) {
+      if (type === 'danger') {
+        iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
+        icon.className = 'fas fa-exclamation-triangle text-2xl text-red-400';
+      } else if (type === 'info') {
+        iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
+        icon.className = 'fas fa-info-circle text-2xl text-green-400';
+      } else {
+        iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-yellow-500/20';
+        icon.className = 'fas fa-exclamation-circle text-2xl text-yellow-400';
+      }
+    }
+    
+    if (confirmBtn) {
+      if (type === 'danger') {
+        confirmBtn.className = 'flex-1 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-white font-semibold';
+      } else if (type === 'info') {
+        confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
+      } else {
+        confirmBtn.className = 'flex-1 bg-gradient-to-r from-green-600 to-green-800 px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-900 transition-all text-white font-semibold';
+      }
     }
     
     confirmCallback = onConfirm;
@@ -110,7 +125,7 @@ function showConfirmModal(title, message, onConfirm, type = 'warning') {
  * Ocultar modal de confirmación
  */
 function hideConfirmModal() {
-  const modal = document.getElementById('confirmModal');
+  const modal = document.getElementById('adminConfirmModal');
   if (modal) {
     modal.classList.add('hidden');
     confirmCallback = null;
@@ -146,28 +161,36 @@ function showAlertModal(title, message, type) {
     finalType = type || 'success';
   }
   
-  const modal = document.getElementById('alertModal');
+  const modal = document.getElementById('adminAlertModal');
   
   // Si existe el modal en el DOM (main.js)
   if (modal) {
     const titleEl = document.getElementById('alertTitle');
-    const messageEl = document.getElementById('alertMessage');
-    const iconEl = document.getElementById('alertIcon');
-    const icon = iconEl.querySelector('i');
+    const messageEl = document.getElementById('adminAlertMessage');
+    const iconEl = document.getElementById('adminAlertIcon');
+    const icon = iconEl ? iconEl.querySelector('i') : null;
     
-    if (titleEl) titleEl.textContent = finalTitle;
-    if (messageEl) messageEl.textContent = finalMessage;
+    // Si hay elemento de título, lo usamos; sino mostramos todo en el mensaje
+    if (titleEl) {
+      titleEl.textContent = finalTitle;
+      if (messageEl) messageEl.textContent = finalMessage;
+    } else if (messageEl) {
+      // Combinar título y mensaje si no hay elemento de título separado
+      messageEl.innerHTML = `<strong>${finalTitle}</strong><br/>${finalMessage}`;
+    }
     
     // Configurar icono y colores según el tipo
-    if (finalType === 'success') {
-      iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
-      icon.className = 'fas fa-check-circle text-2xl text-green-400';
-    } else if (finalType === 'error') {
-      iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
-      icon.className = 'fas fa-times-circle text-2xl text-red-400';
-    } else if (finalType === 'info') {
-      iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-blue-500/20';
-      icon.className = 'fas fa-info-circle text-2xl text-blue-400';
+    if (iconEl && icon) {
+      if (finalType === 'success') {
+        iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-green-500/20';
+        icon.className = 'fas fa-check-circle text-2xl text-green-400';
+      } else if (finalType === 'error') {
+        iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-500/20';
+        icon.className = 'fas fa-times-circle text-2xl text-red-400';
+      } else if (finalType === 'info') {
+        iconEl.className = 'mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-blue-500/20';
+        icon.className = 'fas fa-info-circle text-2xl text-blue-400';
+      }
     }
     
     modal.classList.remove('hidden');
@@ -217,7 +240,7 @@ function showAlertModal(title, message, type) {
  * Ocultar modal de alerta
  */
 function hideAlertModal() {
-  const modal = document.getElementById('alertModal');
+  const modal = document.getElementById('adminAlertModal');
   if (modal) {
     modal.classList.add('hidden');
   }
@@ -225,8 +248,8 @@ function hideAlertModal() {
 
 // Inicializar event listeners cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-  // Botón de confirmación
-  const confirmBtn = document.getElementById('confirmButton');
+  // Botón de confirmación (adminConfirmBtn es el ID real en las vistas)
+  const confirmBtn = document.getElementById('adminConfirmBtn');
   if (confirmBtn) {
     confirmBtn.onclick = () => {
       if (confirmCallback) {
@@ -236,19 +259,5 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
   
-  // Botón de cancelar confirmación
-  const cancelBtn = document.getElementById('cancelButton');
-  if (cancelBtn) {
-    cancelBtn.onclick = () => {
-      hideConfirmModal();
-    };
-  }
-  
-  // Botón de cerrar alerta
-  const alertBtn = document.getElementById('alertButton');
-  if (alertBtn) {
-    alertBtn.onclick = () => {
-      hideAlertModal();
-    };
-  }
+  // Los botones de cancelar y cerrar usan onclick inline en los templates, no necesitan listeners aquí
 });

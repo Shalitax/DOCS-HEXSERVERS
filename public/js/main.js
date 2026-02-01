@@ -530,6 +530,10 @@ function showCategoryModal(id = null, name = '', displayName = '', slug = '', ic
   });
 }
 
+function editCategory(id, name, displayName, slug, icon, order, isHidden, iconType = 'fontawesome') {
+  showCategoryModal(id, name, displayName, slug, icon, order, isHidden, iconType);
+}
+
 function editCategoryModal(id, name, displayName, slug, icon, order, isHidden, iconType = 'fontawesome') {
   showCategoryModal(id, name, displayName, slug, icon, order, isHidden, iconType);
 }
@@ -574,6 +578,12 @@ function showSubcategoryModal(categoryId, categoryName, parentSubcategoryId = nu
         .replace(/^-|-$/g, '');
     }
   });
+}
+
+function editSubcategory(id, name, displayName, slug, icon, order, categoryId, isHidden, iconType = 'fontawesome', parentSubcategoryId = null) {
+  const categoryName = document.querySelector(`button[onclick*="showSubcategoryModal(${categoryId}"]`)
+    ?.closest('.mb-6')?.querySelector('h3')?.textContent.trim() || '';
+  showSubcategoryModal(categoryId, categoryName, parentSubcategoryId, id, name, displayName, slug, icon, order, isHidden, iconType);
 }
 
 function editSubcategoryModal(id, name, displayName, slug, icon, order, categoryId, isHidden, iconType = 'fontawesome', parentSubcategoryId = null) {
