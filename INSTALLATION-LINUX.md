@@ -27,8 +27,11 @@ Guía completa para instalar y configurar HexServers Docs en sistemas Linux (Ubu
 #### Ubuntu/Debian
 
 ```bash
-# Instalar Node.js 18.x LTS
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Instalar dependencias
+
+sudo apt-get install -y npm unzip python3-setuptools
+
+# Instalar Node.js
 sudo apt-get install -y nodejs
 
 # Verificar instalación
@@ -361,7 +364,7 @@ sudo yum install nginx
 sudo nano /etc/nginx/sites-available/hexservers-docs
 ```
 
-**Contenido:**
+**Contenido nginx (Sin SSL):**
 
 ```nginx
 server {
@@ -377,6 +380,49 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+**Contenido nginx (con SSL):**
+
+```nginx
+# 1. Redirección de HTTP a HTTPS (Solo IPv6)
+server {
+    listen [::]:80;
+    server_name tudominio;
+
+    # Retornar permanentemente a la versión segura
+    return 301 https://$host$request_uri;
+}
+
+# 2. Servidor Seguro (HTTPS)
+server {
+    listen [::]:443 ssl;
+    server_name tudominio;
+
+    # Rutas de los certificados generados por Certbot
+    ssl_certificate /etc/letsencrypt/live/tudominio/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tudominio/privkey.pem;
+
+    # Optimización de SSL (Estándar de seguridad 2026)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+
+    location / {
+        # Esto apunta a tu app Node.js (npm run dev)
+        proxy_pass http://[::1]:3000; 
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
         proxy_cache_bypass $http_upgrade;
     }
 }
