@@ -719,11 +719,14 @@ app.get('/admin/categories', requireAuth, asyncHandler(async (req, res) => {
   const categories = await categoryDb.getAll();
   const allSubcategories = await subcategoryDb.getAll();
   
-  // Agrupar subcategorías por categoría
-  const categoriesWithSubs = categories.map(cat => ({
-    ...cat,
-    subcategories: allSubcategories.filter(sub => sub.category_id === cat.id)
-  }));
+  // Construir árbol jerárquico de subcategorías (anida sub-subcategorías correctamente)
+  const categoriesWithSubs = [];
+  for (const category of categories) {
+    categoriesWithSubs.push({
+      ...category,
+      subcategories: await buildSubcategoryTree(allSubcategories, null, category.id, true, false)
+    });
+  }
   
   await renderWithMetadata(res, 'admin/categories', {
     categories: categoriesWithSubs

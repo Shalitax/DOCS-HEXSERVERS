@@ -3,8 +3,8 @@
     <!-- Subcategoría -->
     <div class="flex items-center justify-between py-2 hover:bg-white/5 rounded-lg px-2 transition-colors group">
       <div class="flex items-center space-x-2">
-        <% if (subcategory.icon_type === 'png' && subcategory.icon) { %>
-          <img src="<%= subcategory.icon %>" alt="<%= subcategory.display_name %>" class="w-5 h-5">
+        <% if (subcategory.icon_type === 'image' && subcategory.icon) { %>
+          <img src="<%= subcategory.icon %>" alt="<%= subcategory.display_name %>" class="w-5 h-5 object-contain" onerror="this.style.display='none'">
         <% } else { %>
           <i class="<%= subcategory.icon.includes(' ') ? subcategory.icon : 'fas ' + subcategory.icon %> text-blue-400"></i>
         <% } %>

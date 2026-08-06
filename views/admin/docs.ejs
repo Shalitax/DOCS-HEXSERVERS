@@ -28,8 +28,8 @@
             <!-- Categoría -->
             <div class="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
               <div class="flex items-center space-x-3">
-                <% if (category.icon_type === 'png' && category.icon) { %>
-                  <img src="<%= category.icon %>" alt="<%= category.display_name %>" class="w-8 h-8">
+                <% if (category.icon_type === 'image' && category.icon) { %>
+                  <img src="<%= category.icon %>" alt="<%= category.display_name %>" class="w-8 h-8 object-contain">
                 <% } else { %>
                   <i class="<%= category.icon.includes(' ') ? category.icon : 'fas ' + category.icon %> text-purple-400 text-2xl"></i>
                 <% } %>
