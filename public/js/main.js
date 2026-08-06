@@ -458,36 +458,55 @@ if (sidebarOverlay) {
 }
 
 // Copiar código al portapapeles
-document.querySelectorAll('pre').forEach((pre) => {
-  const button = document.createElement('button');
-  button.className = 'absolute top-2 right-2 glass px-3 py-1 rounded text-xs hover:bg-white/20 transition-all';
-  button.innerHTML = '<i class="fas fa-copy mr-1"></i>Copiar';
-  
-  pre.style.position = 'relative';
-  pre.appendChild(button);
-  
-  button.addEventListener('click', () => {
-    const code = pre.querySelector('code').textContent;
-    navigator.clipboard.writeText(code).then(() => {
-      button.innerHTML = '<i class="fas fa-check mr-1"></i>¡Copiado!';
-      setTimeout(() => {
-        button.innerHTML = '<i class="fas fa-copy mr-1"></i>Copiar';
-      }, 2000);
+function initCopyButtons() {
+  document.querySelectorAll('pre:not([data-copy-init])').forEach((pre) => {
+    pre.setAttribute('data-copy-init', 'true');
+    const button = document.createElement('button');
+    button.className = 'absolute top-2 right-2 glass px-3 py-1 rounded text-xs hover:bg-white/20 transition-all';
+    button.innerHTML = '<i class="fas fa-copy mr-1"></i>Copiar';
+    
+    pre.style.position = 'relative';
+    pre.appendChild(button);
+    
+    button.addEventListener('click', () => {
+      const code = pre.querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        button.innerHTML = '<i class="fas fa-check mr-1"></i>¡Copiado!';
+        setTimeout(() => {
+          button.innerHTML = '<i class="fas fa-copy mr-1"></i>Copiar';
+        }, 2000);
+      });
     });
   });
-});
+}
+initCopyButtons();
+
+// Re-inicializar botones de copiar tras la navegación interactiva (docs-nav.js)
+document.addEventListener('docs:navigated', initCopyButtons);
 
 // Edición en tiempo real (solo para admin)
 let originalContent = '';
-const docId = document.body.dataset.docId;
+
+// El id del documento actual cambia con la navegación interactiva (docs-nav.js),
+// por lo que se lee dinámicamente del body en lugar de capturarlo una sola vez.
+function getCurrentDocId() {
+  return document.body.dataset.docId;
+}
 
 function toggleEditMode() {
   const editContainer = document.getElementById('editContainer');
   const contentDisplay = document.getElementById('contentDisplay');
   const editBtn = document.getElementById('editBtn');
   
+  if (!editContainer || !contentDisplay || !editBtn) return;
+  
   if (editContainer.classList.contains('hidden')) {
     // Obtener el contenido markdown original
+    const docId = getCurrentDocId();
+    if (!docId) {
+      showAlertModal('Error', 'No se puede identificar el documento', 'error');
+      return;
+    }
     fetch(`/api/admin/docs/content/${docId}`)
       .then(res => res.json())
       .then(data => {
@@ -510,6 +529,7 @@ function toggleEditMode() {
 
 function saveContent() {
   const newContent = document.getElementById('contentEditor').value;
+  const docId = getCurrentDocId();
   
   if (!docId) {
     showAlertModal('Error', 'No se puede identificar el documento', 'error');
