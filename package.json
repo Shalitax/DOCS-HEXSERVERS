@@ -5,10 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "prestart": "npm run build:css",
     "dev": "nodemon server.js",
-    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch",
-    "migrate": "node migrate.js",
-    "db:migrate": "node migrate.js"
+    "predev": "npm run build:css",
+    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css",
+    "watch:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch"
   },
   "keywords": [
     "docs",

@@ -61,6 +61,13 @@ const md = new MarkdownIt({
 
 const PORT = process.env.PORT || 3000;
 
+// Helper para manejar errores en rutas async (evita promesas rechazadas sin control)
+function asyncHandler(fn) {
+  return function(req, res, next) {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 // Función de logging mejorada
 function logError(context, error) {
   const timestamp = new Date().toISOString();
@@ -98,11 +105,16 @@ function logInfo(message) {
 // Configuración
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static('public'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
-// Configurar sesiones
+// Confiar en el primer proxy inverso (nginx, etc.) en producción para cookies seguras y rate limiting
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Configurar sesiones (antes que body-parser para que passUser siempre
+// tenga disponibles req.session y res.locals aunque falle el parseo del body)
 app.use(session({
   store: new SQLiteStore({
     db: 'sessions.db',
@@ -114,12 +126,25 @@ app.use(session({
   cookie: {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
     secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
-    httpOnly: true
+    httpOnly: true,
+    sameSite: 'lax' // Protección contra CSRF básica
   }
 }));
 
 // Middleware para pasar información del usuario a las vistas
 app.use(passUser);
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Garantizar que req.body sea siempre un objeto.
+// Si un cliente envía un POST/PUT/DELETE sin Content-Type o sin cuerpo,
+// body-parser deja req.body como undefined y las rutas que hacen
+// `const { campo } = req.body` explotarían (crash del servidor).
+app.use((req, res, next) => {
+  req.body = req.body || {};
+  next();
+});
 
 // Middleware para minificar HTML y eliminar comentarios (solo en producción)
 if (process.env.NODE_ENV === 'production') {
@@ -526,7 +551,8 @@ app.get('/docs/:category/:subcategory/:guide', async (req, res) => {
       title: doc.title,
       currentPath: `${category}/${subcategory}/${guide}`,
       docId: doc.id,
-      updatedAt: doc.updated_at,
+      // Normalizar fecha de SQLite ('YYYY-MM-DD HH:MM:SS' UTC) a ISO-8601 válido
+      updatedAt: doc.updated_at ? doc.updated_at.replace(' ', 'T') + 'Z' : null,
       breadcrumb: breadcrumb,
       metadata: pageMetadata,
       baseMetadata: getBaseMetadata()
@@ -629,7 +655,7 @@ app.get('/admin/login', requireGuest, (req, res) => {
 });
 
 // Login POST con rate limiting
-app.post('/admin/login', loginLimiter, requireGuest, async (req, res) => {
+app.post('/admin/login', loginLimiter, requireGuest, asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -645,15 +671,22 @@ app.post('/admin/login', loginLimiter, requireGuest, async (req, res) => {
       return res.render('admin/login', { error: 'Usuario o contraseña incorrectos' });
     }
 
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    
-    res.redirect('/admin');
+    // Regenerar el ID de sesión para prevenir fijación de sesión (session fixation)
+    req.session.regenerate((err) => {
+      if (err) {
+        logError('Session Regenerate', err);
+        return res.render('admin/login', { error: 'Error al iniciar sesión' });
+      }
+
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      res.redirect('/admin');
+    });
   } catch (error) {
     logError('Login', error);
     res.render('admin/login', { error: 'Error al iniciar sesión' });
   }
-});
+}));
 
 // Logout
 app.get('/admin/logout', (req, res) => {
@@ -664,13 +697,13 @@ app.get('/admin/logout', (req, res) => {
 // ===== RUTAS DE ADMINISTRACIÓN =====
 
 // Panel principal
-app.get('/admin', requireAuth, async (req, res) => {
+app.get('/admin', requireAuth, asyncHandler(async (req, res) => {
   const structure = await loadDocsStructure(true);
   const allDocs = await docDb.getAll();
   const allCategories = await categoryDb.getAll();
   const allSubcategories = await subcategoryDb.getAll();
   
-  renderWithMetadata(res, 'admin/dashboard', {
+  await renderWithMetadata(res, 'admin/dashboard', {
     structure,
     docs: allDocs,
     categories: allCategories,
@@ -679,10 +712,10 @@ app.get('/admin', requireAuth, async (req, res) => {
     title: 'Dashboard - Admin',
     description: 'Panel de administración de HexServers Docs'
   });
-});
+}));
 
 // Gestión de categorías
-app.get('/admin/categories', requireAuth, async (req, res) => {
+app.get('/admin/categories', requireAuth, asyncHandler(async (req, res) => {
   const categories = await categoryDb.getAll();
   const allSubcategories = await subcategoryDb.getAll();
   
@@ -692,16 +725,16 @@ app.get('/admin/categories', requireAuth, async (req, res) => {
     subcategories: allSubcategories.filter(sub => sub.category_id === cat.id)
   }));
   
-  renderWithMetadata(res, 'admin/categories', {
+  await renderWithMetadata(res, 'admin/categories', {
     categories: categoriesWithSubs
   }, {
     title: 'Categorías - Admin',
     description: 'Gestión de categorías y subcategorías'
   });
-});
+}));
 
 // Gestión de documentación
-app.get('/admin/docs', requireAuth, async (req, res) => {
+app.get('/admin/docs', requireAuth, asyncHandler(async (req, res) => {
   const docs = await docDb.getAll();
   const categories = await categoryDb.getAll();
   const subcategories = await subcategoryDb.getAll();
@@ -739,7 +772,7 @@ app.get('/admin/docs', requireAuth, async (req, res) => {
     metadata: pageMetadata,
     baseMetadata: getBaseMetadata()
   });
-});
+}));
 
 // Crear nueva documentación POST
 app.post('/admin/docs/new', requireAuth, async (req, res) => {
@@ -861,7 +894,8 @@ app.get('/api/admin/subcategories/all', requireAuth, async (req, res) => {
 });
 
 // Obtener subcategorías de una categoría (solo primer nivel)
-app.get('/api/admin/subcategories/:categoryId', requireAuth, async (req, res) => {
+// NOTA: ruta con prefijo específico para no ensombrecer GET /api/admin/subcategories/:id
+app.get('/api/admin/categories/:categoryId/subcategories', requireAuth, async (req, res) => {
   try {
     const subcategories = await subcategoryDb.getByCategoryId(req.params.categoryId);
     res.json(subcategories);
@@ -1093,7 +1127,7 @@ app.post('/api/admin/docs/quick-edit/:id', requireAuth, async (req, res) => {
 // ===== GESTIÓN DE USUARIOS =====
 
 // Listar usuarios
-app.get('/admin/users', requireAuth, async (req, res) => {
+app.get('/admin/users', requireAuth, asyncHandler(async (req, res) => {
   const users = await userDb.getAll();
   
   const pageMetadata = generatePageMetadata({
@@ -1106,7 +1140,7 @@ app.get('/admin/users', requireAuth, async (req, res) => {
     metadata: pageMetadata,
     baseMetadata: getBaseMetadata()
   });
-});
+}));
 
 // Crear usuario
 app.post('/api/admin/users', requireAuth, async (req, res) => {
@@ -1139,7 +1173,13 @@ app.post('/api/admin/users', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     logError('Create User', error);
-    res.status(500).json({ error: 'Error al crear usuario' });
+    
+    let errorMessage = 'Error al crear usuario';
+    if (error.code === 'SQLITE_CONSTRAINT' && error.message.includes('UNIQUE constraint failed')) {
+      errorMessage = 'El nombre de usuario o email ya está en uso';
+    }
+    
+    res.status(400).json({ error: errorMessage });
   }
 });
 
@@ -1147,12 +1187,31 @@ app.post('/api/admin/users', requireAuth, async (req, res) => {
 app.put('/api/admin/users/:id', requireAuth, async (req, res) => {
   const { username, email, password } = req.body;
   
+  // Validación de entrada (misma que en creación)
+  if (!username || username.trim().length < 3) {
+    return res.status(400).json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
+  }
+  
+  if (password && password.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+  
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'El email no es válido' });
+  }
+  
   try {
     await userDb.update(req.params.id, username, email, password || null);
     res.json({ success: true });
   } catch (error) {
     logError('Update User', error);
-    res.status(500).json({ error: 'Error al actualizar usuario' });
+    
+    let errorMessage = 'Error al actualizar usuario';
+    if (error.code === 'SQLITE_CONSTRAINT' && error.message.includes('UNIQUE constraint failed')) {
+      errorMessage = 'El nombre de usuario o email ya está en uso por otro usuario';
+    }
+    
+    res.status(400).json({ error: errorMessage });
   }
 });
 
@@ -1161,7 +1220,11 @@ app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
   try {
     // No permitir eliminar al usuario activo
     const user = await userDb.findById(req.params.id);
-    if (user.username === req.session.user) {
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    // Comparar por ID de sesión (req.session.userId), no por nombre
+    if (user.id === req.session.userId) {
       return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
     }
     
@@ -1176,7 +1239,7 @@ app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
 // ===== RUTAS ADMIN - LANDING PAGE =====
 
 // Vista de edición de landing page
-app.get('/admin/landing', requireAuth, async (req, res) => {
+app.get('/admin/landing', requireAuth, asyncHandler(async (req, res) => {
   const landingContent = await settingsDb.get('landing_page_content') || '';
   
   const pageMetadata = generatePageMetadata({
@@ -1190,7 +1253,7 @@ app.get('/admin/landing', requireAuth, async (req, res) => {
     metadata: pageMetadata,
     baseMetadata: getBaseMetadata()
   });
-});
+}));
 
 // Guardar contenido de landing page
 app.post('/api/admin/landing', requireAuth, async (req, res) => {
@@ -1264,6 +1327,63 @@ app.get('/api/admin/backup/download', requireAuth, (req, res) => {
     logError('Download Backup', error);
     res.status(500).json({ error: 'Error al descargar respaldo' });
   }
+});
+
+// ===== MANEJO DE ERRORES =====
+
+// Ruta 404 para páginas no encontradas
+app.use((req, res) => {
+  const pageMetadata = generatePageMetadata({
+    title: 'Página no encontrada',
+    description: 'La página que buscas no existe',
+    robots: 'noindex, nofollow'
+  });
+
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Recurso no encontrado' });
+  }
+
+  res.status(404).render('index', {
+    structure: [],
+    content: '<h1>Error 404</h1><p>La página que buscas no existe.</p>',
+    title: 'Error 404',
+    currentPath: null,
+    isAuthenticated: !!res.locals.isAuthenticated,
+    username: res.locals.username || null,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
+});
+
+// Middleware global de errores (evita que el servidor se caiga ante errores inesperados)
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  logError('Unhandled Error', err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  if (req.path.startsWith('/api/')) {
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+
+  const pageMetadata = generatePageMetadata({
+    title: 'Error',
+    description: 'Ocurrió un error inesperado',
+    robots: 'noindex, nofollow'
+  });
+
+  res.status(500).render('index', {
+    structure: [],
+    content: '<h1>Error</h1><p>Ocurrió un error inesperado. Por favor, inténtalo de nuevo.</p>',
+    title: 'Error',
+    currentPath: null,
+    isAuthenticated: !!res.locals.isAuthenticated,
+    username: res.locals.username || null,
+    metadata: pageMetadata,
+    baseMetadata: getBaseMetadata()
+  });
 });
 
 // Inicializar base de datos y servidor

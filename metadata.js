@@ -36,6 +36,14 @@ function generatePageMetadata(page = {}) {
   
   const description = page.description || metadata.site.description;
 
+  // Si la página define robots explícitamente, se respeta; si no, se usa el valor global
+  let robots;
+  if (page.robots) {
+    robots = page.robots;
+  } else {
+    robots = `${metadata.robots.index ? 'index' : 'noindex'}, ${metadata.robots.follow ? 'follow' : 'nofollow'}`;
+  }
+
   return {
     // Meta tags básicos
     charset: 'UTF-8',
@@ -43,7 +51,7 @@ function generatePageMetadata(page = {}) {
     title,
     description,
     author: metadata.author.name,
-    robots: `${metadata.robots.index ? 'index' : 'noindex'}, ${metadata.robots.follow ? 'follow' : 'nofollow'}`
+    robots
   };
 }
 

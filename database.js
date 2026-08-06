@@ -493,7 +493,7 @@ const docDb = {
          FROM documentation d
          JOIN subcategories s ON d.subcategory_id = s.id
          JOIN categories c ON s.category_id = c.id
-         WHERE d.subcategory_id = ? 
+         WHERE d.subcategory_id = ? AND d.is_published = 1
          ORDER BY d.order_index ASC, d.title ASC`,
         [subcategoryId],
         (err, rows) => {
